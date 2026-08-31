@@ -1,0 +1,5 @@
+{
+  "arm": "arm-b",
+  "produced_by": "canned demo arm (checked into the repo so the flow runs offline)",
+  "prompt": "demo/tasks/word-wrap/SPEC.md, with visible-tests/ readable and hidden-tests/ withheld"
+}

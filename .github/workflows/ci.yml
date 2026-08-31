@@ -1,0 +1,27 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.9", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+      - name: Walk the demo end to end
+        run: |
+          python eval.py check demo/tasks/word-wrap demo/arms/word-wrap/arm-a
+          python eval.py grade demo/tasks/word-wrap demo/arms/word-wrap/arm-a
+          python eval.py pack demo/tasks/word-wrap demo/arms/word-wrap/arm-a demo/arms/word-wrap/arm-b
+          python eval.py record demo/tasks/word-wrap demo/scorecard-filled.md
+          python eval.py ship demo/tasks/word-wrap demo/arms/word-wrap/arm-a
