@@ -21,6 +21,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from collections.abc import Iterator
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -88,7 +89,7 @@ def load_task(task_dir: Path) -> dict:
     return manifest
 
 
-def iter_files(root: Path):
+def iter_files(root: Path) -> Iterator[Path]:
     for path in sorted(root.rglob("*")):
         if path.is_file() and "__pycache__" not in path.parts and path.name != ".DS_Store":
             yield path
