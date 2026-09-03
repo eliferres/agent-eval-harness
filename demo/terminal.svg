@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 428" role="img" aria-labelledby="t d" font-family="SF Mono, Menlo, Consolas, monospace" font-size="20">
+  <title id="t">agent-eval-harness demo terminal</title>
+  <desc id="d">A terminal session: arm A clears the visible and hidden word-wrap tests, then arm B's hidden test catches it breaking a word longer than the wrap width, a bug the visible tests never probed.</desc>
+  <style>
+    .p { fill: #7ee2a8; }
+    .cmd { fill: #e8eef5; }
+    .dim { fill: #9fb0c0; }
+    .bad { fill: #ff9494; }
+    .good { fill: #7ee2a8; }
+  </style>
+  <rect width="660" height="428" rx="14" fill="#0b0f14"/>
+  <rect width="660" height="40" rx="14" fill="#11161d"/>
+  <rect y="26" width="660" height="14" fill="#11161d"/>
+  <circle cx="26" cy="20" r="6" fill="#ff5f57"/>
+  <circle cx="48" cy="20" r="6" fill="#febc2e"/>
+  <circle cx="70" cy="20" r="6" fill="#28c840"/>
+  <text x="92" y="26" class="dim" font-size="14">taste, enforced</text>
+  <text x="24" y="80"><tspan class="p">$</tspan><tspan class="cmd" dx="8">python3 eval.py check demo/tasks/word-wrap \</tspan></text>
+  <text x="24" y="112" class="cmd">    demo/arms/word-wrap/arm-a</text>
+  <text x="24" y="144" class="good">check: arm-a visible tests PASS (5 ran)</text>
+  <text x="24" y="176"><tspan class="p">$</tspan><tspan class="cmd" dx="8">python3 eval.py grade demo/tasks/word-wrap \</tspan></text>
+  <text x="24" y="208" class="cmd">    demo/arms/word-wrap/arm-a</text>
+  <text x="24" y="240" class="good">grade: arm-a hidden tests PASS (5 ran, blindness verified)</text>
+  <text x="24" y="272"><tspan class="p">$</tspan><tspan class="cmd" dx="8">python3 eval.py grade demo/tasks/word-wrap \</tspan></text>
+  <text x="24" y="304" class="cmd">    demo/arms/word-wrap/arm-b</text>
+  <text x="24" y="336" class="dim">AssertionError: Lists differ: ['a', 'super', 'calif', 'ragi…</text>
+  <text x="24" y="368" class="dim">FAILED (failures=1)</text>
+  <text x="24" y="400" class="bad">grade: arm-b hidden tests FAIL (5 ran, blindness verified)</text>
+</svg>
