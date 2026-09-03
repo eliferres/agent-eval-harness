@@ -14,7 +14,7 @@
   <circle cx="26" cy="20" r="6" fill="#ff5f57"/>
   <circle cx="48" cy="20" r="6" fill="#febc2e"/>
   <circle cx="70" cy="20" r="6" fill="#28c840"/>
-  <text x="92" y="26" class="dim" font-size="14">taste, enforced</text>
+  <text x="92" y="26" class="dim" font-size="14">agent-eval-harness</text>
   <text x="24" y="80"><tspan class="p">$</tspan><tspan class="cmd" dx="8">python3 eval.py check demo/tasks/word-wrap \</tspan></text>
   <text x="24" y="112" class="cmd">    demo/arms/word-wrap/arm-a</text>
   <text x="24" y="144" class="good">check: arm-a visible tests PASS (5 ran)</text>
