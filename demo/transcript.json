@@ -1,0 +1,17 @@
+[
+  {
+    "cmd": "python3 eval.py check demo/tasks/word-wrap demo/arms/word-wrap/arm-a",
+    "out": "check: arm-a visible tests PASS (5 ran)",
+    "status": 0
+  },
+  {
+    "cmd": "python3 eval.py grade demo/tasks/word-wrap demo/arms/word-wrap/arm-a",
+    "out": "grade: arm-a hidden tests PASS (5 ran, blindness verified)",
+    "status": 0
+  },
+  {
+    "cmd": "python3 eval.py grade demo/tasks/word-wrap demo/arms/word-wrap/arm-b",
+    "out": "AssertionError: Lists differ: ['a', 'super', 'calif', 'ragil', 'istic', 'b'] != ['a', 'supercalifragilistic', 'b']\nFAILED (failures=1)\ngrade: arm-b hidden tests FAIL (5 ran, blindness verified)",
+    "status": 1
+  }
+]
