@@ -190,6 +190,38 @@ class HarnessTest(unittest.TestCase):
                 self.assertEqual([name for name, green, _ in legs if not green], [leg])
         self.assertTrue(all(green for _, green, _ in harness.ship_legs(ledger_with(), "arm-a", 8)))
 
+    def test_a_missing_arm_is_all_four_legs_red(self):
+        # ship_legs on an arm id the ledger has never seen (no check, grade,
+        # pack, or record run against it) - the "never run" branch of every
+        # leg, not just one of them going red.
+        empty_ledger = {"task": "t", "arms": {}, "packet": None, "scorecard": None}
+        legs = harness.ship_legs(empty_ledger, "never-touched", 8)
+        self.assertEqual(
+            [name for name, _, _ in legs],
+            ["visible tests", "hidden tests", "blind judge", "graft review"],
+        )
+        self.assertFalse(any(green for _, green, _ in legs))
+        details = {name: detail for name, _, detail in legs}
+        self.assertIn("never run (eval.py check)", details["visible tests"])
+        self.assertIn("never run (eval.py grade)", details["hidden tests"])
+        self.assertIn("no scorecard filed", details["blind judge"])
+        self.assertIn("not recorded", details["graft review"])
+
+    def test_a_judge_tie_the_loser_still_clears_the_floor(self):
+        # Winning isn't the only way the blind-judge leg goes green: an arm
+        # that was not picked but still scored at or above the floor is a
+        # tie in practice, not a loss, and ship_legs must say so rather than
+        # reading "not winner" as automatically red.
+        tied = ledger_with(scorecard=dict(
+            ledger_with()["scorecard"],
+            winner="submission-1",
+            scores={"submission-1": 8, "submission-2": 8},
+        ))
+        legs = harness.ship_legs(tied, "arm-a", 8)
+        judge_leg = next(leg for leg in legs if leg[0] == "blind judge")
+        self.assertTrue(judge_leg[1], judge_leg)
+        self.assertIn("not picked as submission-2, score 8/10 (floor 8)", judge_leg[2])
+
 
 if __name__ == "__main__":
     unittest.main()
