@@ -1,11 +1,6 @@
 # agent-eval-harness
 
-When one model writes the code and the same model grades it, it is
-marking its own homework. When the implementer can read the grading
-tests, it writes to the tests instead of to the spec. The fix here is
-mechanical: two blind attempts at one spec, tests the
-implementer never sees, a judge who cannot tell whose work is whose, and
-a ship verdict that refuses until all four legs are green.
+A model that writes the code and grades it is marking its own homework. agent-eval-harness runs two blind attempts at one spec, holds tests the implementer never sees, hands both to a judge who cannot tell whose work is whose, and refuses to ship until all four legs are green.
 
 The harness never calls a model. Arms are opaque directories produced by
 whatever agent, tool, or human you point at the spec, so it works the
