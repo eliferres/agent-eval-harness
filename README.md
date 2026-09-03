@@ -13,6 +13,8 @@ same with any vendor and with a human in either seat.
 
 ![ci](https://github.com/eliferres/agent-eval-harness/actions/workflows/ci.yml/badge.svg)
 
+<img src="demo/terminal.svg" width="660" alt="Terminal session showing one arm passing hidden tests and a second arm's hidden test catching a bug the visible tests never probed.">
+
 ## Quick start
 
 ```bash
