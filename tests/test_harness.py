@@ -121,6 +121,16 @@ class HarnessTest(unittest.TestCase):
         write(arm / "borrowed.py", reformatted)
         self.assertTrue(harness.contamination(arm, self.task["dir"] / harness.HIDDEN))
 
+    def test_an_empty_init_file_is_not_a_copied_hidden_test(self):
+        # Normalizing blank lines away makes every empty file hash alike, so
+        # an ordinary empty __init__.py in an arm read as a copy of an empty
+        # __init__.py in the hidden tests: a public accusation of cheating
+        # and a hidden leg that could never go green.
+        arm = build_arm(self.root / "arm-a")
+        write(arm / "__init__.py", "")
+        write(self.task["dir"] / harness.HIDDEN / "__init__.py", "\n\n   \n")
+        self.assertEqual(harness.contamination(arm, self.task["dir"] / harness.HIDDEN), [])
+
     def test_shuffle_is_deterministic_from_the_seed(self):
         first = harness.blind_order("seed-1", ["arm-a", "arm-b"])
         self.assertEqual(first, harness.blind_order("seed-1", ["arm-b", "arm-a"]))

@@ -188,9 +188,18 @@ def content_hash(path: Path) -> str:
     return hashlib.sha256(body.encode("utf-8")).hexdigest()
 
 
+# What a file with nothing but blank lines and spaces normalizes to. Every
+# such file hashes alike, so comparing two of them says nothing about where
+# either came from: an empty __init__.py in an arm is not a copy of an empty
+# __init__.py in the hidden tests, and reading it as one accused an honest
+# arm of holding the tests and left its hidden leg red for good.
+EMPTY_BODY = hashlib.sha256(b"").hexdigest()
+
+
 def contamination(arm_dir: Path, hidden_dir: Path) -> list[str]:
     """Hidden-test files found inside an arm. Non-empty means refuse to grade."""
-    hidden = {content_hash(p): p.name for p in iter_files(hidden_dir)}
+    hidden = {content_hash(p): p.name
+              for p in iter_files(hidden_dir) if content_hash(p) != EMPTY_BODY}
     return [
         "%s matches hidden test %s" % (path.relative_to(arm_dir), hidden[content_hash(path)])
         for path in iter_files(arm_dir)
