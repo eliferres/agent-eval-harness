@@ -223,6 +223,18 @@ class HarnessTest(unittest.TestCase):
             harness.check_fixture(self.task["dir"], before)
         self.assertIn("rewritten while the arm ran", str(caught.exception))
 
+    def test_an_arm_that_hangs_is_killed_and_the_leg_goes_red(self):
+        # With no limit on the child, an arm that sleeps held the harness
+        # open until something outside ended it.
+        arm = build_arm(self.root / "arm-a", "import time\n\ntime.sleep(60)\n")
+        result = harness.run_tests(arm, self.task["dir"] / harness.VISIBLE, timeout=2)
+        self.assertFalse(result["ok"])
+        self.assertIn("killed after 2 seconds", result["output"])
+
+        legs = harness.ship_legs(ledger_with(arm={"visible": result}), "arm-a", 8)
+        self.assertEqual([(name, detail) for name, green, detail in legs if not green],
+                         [("visible tests", "timed out")])
+
     def test_packet_carries_no_arm_identity(self):
         arms = [build_arm(self.root / "arm-a"), build_arm(self.root / "arm-b", BAD_ARM)]
         key = harness.build_packet(self.task, arms, self.root / "runs")

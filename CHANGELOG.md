@@ -10,6 +10,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Added packaging, so `pipx install git+https://github.com/eliferres/agent-eval-harness` puts one command, `agent-eval`, on your path; it takes the same subcommands as the module and `agent-eval --version` prints the version. Anything the tool prints about what to run next names the command you invoked, `agent-eval` or `agent_eval.py`.
 
 ### Fixed
+- A test run now gets 300 seconds. An arm that hangs used to hold the harness open until something outside killed it, which in CI means a job burning to the runner's limit with no verdict; it is now killed at the limit and its leg reads "timed out". The limit is documented under Limitations.
 - A ledger file that is valid JSON but not a ledger is now refused with one line at exit 2, the way a corrupt one already was, instead of crashing on whichever key was read first.
 - A file in an arm the harness cannot read now gives one line on standard error and exit 2, the exit code the tool documents for bad input, instead of a raw traceback at exit 1.
 - `ship` now checks the fingerprint of every arm the judging packet holds, not only the arm you name. The scorecard is a comparison, so replacing the loser's code after the judge scored it left the winner shipping on a judgement that no longer described either side.

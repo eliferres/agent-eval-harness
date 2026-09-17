@@ -142,6 +142,11 @@ RAN = re.compile(r"^Ran (\d+) tests?", re.M)
 # and rewrote the hidden tests it was about to be judged by.
 CWD_VARS = ("PWD", "OLDPWD")
 
+# How long one test child may run before it is killed. Without a limit an
+# arm that sleeps held the harness open until something outside ended it,
+# which in CI means a job burning to the runner's limit with no verdict.
+TEST_TIMEOUT = 300
+
 # The child that runs one staged arm. `unittest` is imported before the
 # staging directory reaches sys.path, which is what stops an arm shipping
 # its own unittest.py from answering for the test run: discover puts the
@@ -158,7 +163,7 @@ sys.exit(0 if result.wasSuccessful() else 1)
 """
 
 
-def run_tests(arm_dir: Path, tests_dir: Path) -> dict:
+def run_tests(arm_dir: Path, tests_dir: Path, timeout: int = TEST_TIMEOUT) -> dict:
     """Run one test directory against one arm in a throwaway staging dir.
 
     Staging is what keeps hidden tests hidden: the arm never gains a copy,
@@ -174,13 +179,23 @@ def run_tests(arm_dir: Path, tests_dir: Path) -> dict:
         env = dict(os.environ, PYTHONSAFEPATH="1")  # ignored before Python 3.11
         for name in CWD_VARS:
             env.pop(name, None)
-        proc = subprocess.run(
-            [sys.executable, "-c", RUNNER, str(work)],
-            cwd=scratch,
-            env=env,
-            capture_output=True,
-            text=True,
-        )
+        try:
+            proc = subprocess.run(
+                [sys.executable, "-c", RUNNER, str(work)],
+                cwd=scratch,
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+        except subprocess.TimeoutExpired:
+            return {
+                "ok": False,
+                "ran": 0,
+                "timed_out": True,
+                "at": now(),
+                "output": "the test run was killed after %d seconds without finishing" % timeout,
+            }
     output = (proc.stdout + proc.stderr).strip()
     found = RAN.search(output)
     ran = int(found.group(1)) if found else 0
@@ -364,11 +379,13 @@ def ran_and_passed(result) -> bool:
     return bool(result and result.get("ok") and result.get("ran"))
 
 
-def no_tests_line(result) -> str:
-    """The detail for a leg that exited clean without running anything."""
+def red_detail(result) -> str:
+    """Why a recorded test leg is red, in two words."""
+    if result.get("timed_out"):
+        return "timed out"
     if result.get("ok") and not result.get("ran"):
         return "no tests ran"
-    return ""
+    return "failing"
 
 
 def prog() -> str:
@@ -589,7 +606,7 @@ def ship_legs(ledger: dict, arm_id: str, judge_floor: int) -> list[tuple]:
     legs.append(
         ("visible tests", visible_ok,
          "%d passed" % visible["ran"] if visible_ok
-         else no_tests_line(visible) or "failing" if visible
+         else red_detail(visible) if visible
          else "never run (%s check)" % command)
     )
 
@@ -600,7 +617,7 @@ def ship_legs(ledger: dict, arm_id: str, judge_floor: int) -> list[tuple]:
         ("hidden tests", hidden_ok,
          "%d passed, blindness verified" % hidden["ran"] if hidden_ok
          else "arm contains hidden tests" if blind and not blind["clean"]
-         else no_tests_line(hidden) or "failing" if hidden
+         else red_detail(hidden) if hidden
          else "never run (%s grade)" % command)
     )
 
