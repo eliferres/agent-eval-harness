@@ -233,6 +233,18 @@ class HarnessTest(unittest.TestCase):
         write(arm / "solution.py", BAD_ARM)
         self.assertNotEqual(harness.arm_fingerprint(arm), baseline)
 
+    def test_an_arm_under_a_skipped_ancestor_still_holds_its_files(self):
+        # The skip list is about residue inside an arm. Matched against the
+        # whole path, an arm sitting anywhere under a directory named .git,
+        # __pycache__ or .pytest_cache walked as zero files and fingerprinted
+        # as the hash of nothing, which no edit to the arm could move.
+        arm = build_arm(self.root / ".git" / "checkout" / "arm-a")
+        self.assertEqual(sorted(p.name for p in harness.iter_files(arm)),
+                         [harness.META, "solution.py"])
+        baseline = harness.arm_fingerprint(arm)
+        write(arm / "solution.py", BAD_ARM)
+        self.assertNotEqual(harness.arm_fingerprint(arm), baseline)
+
     def test_fingerprint_moves_when_one_file_is_folded_into_another(self):
         # Delete a file and append its name and its bytes to the file that
         # sorts before it, and the bytes fed to the hash are byte for byte

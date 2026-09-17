@@ -100,7 +100,10 @@ def iter_files(root: Path) -> Iterator[Path]:
     for path in sorted(root.rglob("*")):
         if not path.is_file():
             continue
-        if any(part in SKIP_DIRS for part in path.parts):
+        # Relative to the arm, never the whole path: an arm that happens to
+        # sit under a directory named .git walked as zero files and hashed
+        # as the hash of nothing, a fingerprint no edit could move.
+        if any(part in SKIP_DIRS for part in path.relative_to(root).parts):
             continue
         if path.name in SKIP_NAMES or path.suffix == ".pyc":
             continue
