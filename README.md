@@ -15,7 +15,7 @@ same with any vendor and with a human in either seat.
 ```bash
 git clone https://github.com/eliferres/agent-eval-harness.git
 cd agent-eval-harness
-python3 eval.py check demo/tasks/word-wrap demo/arms/word-wrap/arm-a
+python3 agent_eval.py check demo/tasks/word-wrap demo/arms/word-wrap/arm-a
 python3 -m unittest discover -s tests    # zero dependencies, Python 3.9+
 ```
 
@@ -82,8 +82,8 @@ actually prints, trimmed to the last line where a test log precedes it.
 **1. Both arms pass the tests they can see.**
 
 ```bash
-python3 eval.py check demo/tasks/word-wrap demo/arms/word-wrap/arm-a
-python3 eval.py check demo/tasks/word-wrap demo/arms/word-wrap/arm-b
+python3 agent_eval.py check demo/tasks/word-wrap demo/arms/word-wrap/arm-a
+python3 agent_eval.py check demo/tasks/word-wrap demo/arms/word-wrap/arm-b
 ```
 
 ```
@@ -96,8 +96,8 @@ than the wrap width. `SPEC.md` forbids that, the visible tests never
 probe it, and a hidden test does.
 
 ```bash
-python3 eval.py grade demo/tasks/word-wrap demo/arms/word-wrap/arm-a
-python3 eval.py grade demo/tasks/word-wrap demo/arms/word-wrap/arm-b
+python3 agent_eval.py grade demo/tasks/word-wrap demo/arms/word-wrap/arm-a
+python3 agent_eval.py grade demo/tasks/word-wrap demo/arms/word-wrap/arm-b
 ```
 
 ```
@@ -112,7 +112,7 @@ requires `['a', 'supercalifragilistic', 'b']`.
 **3. Build the blind packet.**
 
 ```bash
-python3 eval.py pack demo/tasks/word-wrap demo/arms/word-wrap/arm-a demo/arms/word-wrap/arm-b
+python3 agent_eval.py pack demo/tasks/word-wrap demo/arms/word-wrap/arm-a demo/arms/word-wrap/arm-b
 ```
 
 ```
@@ -128,7 +128,7 @@ submissions and the scorecard, and nothing that says which is which.
 in, so the demo needs no judge:
 
 ```bash
-python3 eval.py record demo/tasks/word-wrap demo/scorecard-filled.md
+python3 agent_eval.py record demo/tasks/word-wrap demo/scorecard-filled.md
 ```
 
 ```
@@ -141,8 +141,8 @@ record: graft reviewed yes - The loser's explicit chunk-then-join split would be
 **5. The verdict.**
 
 ```bash
-python3 eval.py ship demo/tasks/word-wrap demo/arms/word-wrap/arm-a
-python3 eval.py ship demo/tasks/word-wrap demo/arms/word-wrap/arm-b
+python3 agent_eval.py ship demo/tasks/word-wrap demo/arms/word-wrap/arm-a
+python3 agent_eval.py ship demo/tasks/word-wrap demo/arms/word-wrap/arm-b
 ```
 
 ```
@@ -163,7 +163,7 @@ NO SHIP - 2 of 4 legs green
 
 `ship` exits 0 only on four green legs, so it drops straight into CI.
 
-**Your own task:** `python3 eval.py init tasks/my-task` scaffolds the
+**Your own task:** `python3 agent_eval.py init tasks/my-task` scaffolds the
 fixture with a fresh seed; fill in `SPEC.md`, the two test directories
 and `judge-brief.md`, then run the same five steps.
 
@@ -171,8 +171,8 @@ and `judge-brief.md`, then run the same five steps.
 
 | Path | Role |
 |---|---|
-| `eval.py` | The CLI: `init`, `check`, `grade`, `pack`, `record`, `ship`. |
-| `harness.py` | The core: staging, hashing, shuffle, scorecard, the four legs. |
+| `agent_eval.py` | The CLI: `init`, `check`, `grade`, `pack`, `record`, `ship`. |
+| `eval_harness.py` | The core: staging, hashing, shuffle, scorecard, the four legs. |
 | `demo/tasks/word-wrap/` | A worked task fixture: spec, brief, visible and hidden tests, seed. |
 | `demo/arms/word-wrap/` | Two canned arms; arm B fails one hidden edge case. |
 | `demo/scorecard-filled.md` | An example filled scorecard, so the flow runs with no judge. |
@@ -230,7 +230,7 @@ forever the moment its directory is deleted.
   retypes or paraphrases a hidden test defeats it, as does one that never
   had file access in the first place.
 - Task fixtures here are Python and run under `unittest`. Other stacks
-  need the runner in `harness.run_tests` swapped for their own command.
+  need the runner in `eval_harness.run_tests` swapped for their own command.
 
 ## License
 

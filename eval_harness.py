@@ -1,6 +1,6 @@
 """Core of the blind two-arm evaluation harness.
 
-Holds everything the CLI in eval.py orchestrates: task fixtures, test
+Holds everything the CLI in agent_eval.py orchestrates: task fixtures, test
 running in a staged temp dir, the blindness hash check, the deterministic
 shuffle that builds a judging packet, scorecard parsing, and the
 four-legged ship verdict.
@@ -325,7 +325,7 @@ def ship_legs(ledger: dict, arm_id: str, judge_floor: int) -> list[tuple]:
     legs.append(
         ("visible tests", bool(visible and visible["ok"]),
          "%d passed" % visible["ran"] if visible and visible["ok"]
-         else "failing" if visible else "never run (eval.py check)")
+         else "failing" if visible else "never run (agent_eval.py check)")
     )
 
     hidden = arm.get("hidden")
@@ -335,13 +335,13 @@ def ship_legs(ledger: dict, arm_id: str, judge_floor: int) -> list[tuple]:
         ("hidden tests", hidden_ok,
          "%d passed, blindness verified" % hidden["ran"] if hidden_ok
          else "arm contains hidden tests" if blind and not blind["clean"]
-         else "failing" if hidden else "never run (eval.py grade)")
+         else "failing" if hidden else "never run (agent_eval.py grade)")
     )
 
     card = ledger.get("scorecard")
     packet = ledger.get("packet")
     if not card or not packet:
-        legs.append(("blind judge", False, "no scorecard filed (eval.py pack, then record)"))
+        legs.append(("blind judge", False, "no scorecard filed (agent_eval.py pack, then record)"))
     else:
         slot = next((s for s, a in packet["order"].items() if a == arm_id), None)
         score = card["scores"].get(slot, 0)

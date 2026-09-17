@@ -12,7 +12,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
-import harness  # noqa: E402
+import eval_harness as harness  # noqa: E402
 
 GOOD_ARM = "def answer():\n    return 42\n"
 BAD_ARM = "def answer():\n    return 41\n"
@@ -202,8 +202,8 @@ class HarnessTest(unittest.TestCase):
         )
         self.assertFalse(any(green for _, green, _ in legs))
         details = {name: detail for name, _, detail in legs}
-        self.assertIn("never run (eval.py check)", details["visible tests"])
-        self.assertIn("never run (eval.py grade)", details["hidden tests"])
+        self.assertIn("never run (agent_eval.py check)", details["visible tests"])
+        self.assertIn("never run (agent_eval.py grade)", details["hidden tests"])
         self.assertIn("no scorecard filed", details["blind judge"])
         self.assertIn("not recorded", details["graft review"])
 

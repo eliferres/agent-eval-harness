@@ -16,7 +16,7 @@ trail: what was run, when, with which seed, and how the shuffle mapped.
 Stdlib only. Exit 0 on green, 1 on a red or refused verdict, 2 on bad input.
 
 Usage:
-    python eval.py <command> --help
+    python agent_eval.py <command> --help
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ import secrets
 import sys
 from pathlib import Path
 
-import harness
+import eval_harness as harness
 
 GREEN, RED = "[green]", "[ RED ]"
 
@@ -189,7 +189,7 @@ def cmd_ship(args) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="eval.py", description=__doc__.splitlines()[0])
+    parser = argparse.ArgumentParser(prog="agent_eval.py", description=__doc__.splitlines()[0])
     parser.add_argument("--runs", default="runs", help="where ledgers and packets are written")
     subs = parser.add_subparsers(dest="command", required=True)
 

@@ -1,4 +1,4 @@
-"""End-to-end tests for the eval.py CLI.
+"""End-to-end tests for the agent_eval.py CLI.
 
 These run the shipped demo through every subcommand in a temp runs
 directory, so a green suite means the README walkthrough works.
@@ -14,7 +14,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
-import harness  # noqa: E402
+import eval_harness as harness  # noqa: E402
 
 TASK = "demo/tasks/word-wrap"
 ARM_A = "demo/arms/word-wrap/arm-a"
@@ -29,7 +29,7 @@ class CliTest(unittest.TestCase):
 
     def eval_py(self, *args):
         return subprocess.run(
-            [sys.executable, "eval.py", "--runs", str(self.runs), *args],
+            [sys.executable, "agent_eval.py", "--runs", str(self.runs), *args],
             cwd=str(REPO), capture_output=True, text=True,
         )
 

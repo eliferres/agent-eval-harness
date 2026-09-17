@@ -21,8 +21,8 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Walk the demo end to end
         run: |
-          python eval.py check demo/tasks/word-wrap demo/arms/word-wrap/arm-a
-          python eval.py grade demo/tasks/word-wrap demo/arms/word-wrap/arm-a
-          python eval.py pack demo/tasks/word-wrap demo/arms/word-wrap/arm-a demo/arms/word-wrap/arm-b
-          python eval.py record demo/tasks/word-wrap demo/scorecard-filled.md
-          python eval.py ship demo/tasks/word-wrap demo/arms/word-wrap/arm-a
+          python agent_eval.py check demo/tasks/word-wrap demo/arms/word-wrap/arm-a
+          python agent_eval.py grade demo/tasks/word-wrap demo/arms/word-wrap/arm-a
+          python agent_eval.py pack demo/tasks/word-wrap demo/arms/word-wrap/arm-a demo/arms/word-wrap/arm-b
+          python agent_eval.py record demo/tasks/word-wrap demo/scorecard-filled.md
+          python agent_eval.py ship demo/tasks/word-wrap demo/arms/word-wrap/arm-a
