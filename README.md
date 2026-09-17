@@ -251,5 +251,8 @@ forever the moment its directory is deleted.
   had file access in the first place.
 - Task fixtures here are Python and run under `unittest`. Other stacks
   need the runner in `eval_harness.run_tests` swapped for their own command.
+- An arm's code is run, and is trusted that far. The harness catches drift
+  and accidents, and an arm that deliberately shadows other standard library
+  modules its tests import is outside what it can catch.
 
 MIT. See LICENSE.

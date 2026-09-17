@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import random
 import re
 import shutil
@@ -121,20 +122,40 @@ def stage(src: Path, dst: Path, skip_meta: bool = True) -> None:
 
 RAN = re.compile(r"^Ran (\d+) tests?", re.M)
 
+# The child that runs one staged arm. `unittest` is imported before the
+# staging directory reaches sys.path, which is what stops an arm shipping
+# its own unittest.py from answering for the test run: discover puts the
+# staging directory first, but the real module is already imported by then.
+# `python -m unittest` did the two in the other order, so the arm's file won.
+RUNNER = """
+import sys
+import unittest
+
+start = sys.argv[1]
+suite = unittest.defaultTestLoader.discover(start, top_level_dir=start)
+result = unittest.TextTestRunner(verbosity=2).run(suite)
+sys.exit(0 if result.wasSuccessful() else 1)
+"""
+
 
 def run_tests(arm_dir: Path, tests_dir: Path) -> dict:
     """Run one test directory against one arm in a throwaway staging dir.
 
     Staging is what keeps hidden tests hidden: the arm never gains a copy,
-    and the tests never live where an implementer could read them.
+    and the tests never live where an implementer could read them. The
+    child runs from a clean scratch directory, never from the staging
+    directory, so nothing the arm carries is importable before the runner
+    has imported what it needs.
     """
-    with tempfile.TemporaryDirectory() as tmp:
+    with tempfile.TemporaryDirectory() as tmp, tempfile.TemporaryDirectory() as scratch:
         work = Path(tmp)
         stage(arm_dir, work)
         stage(tests_dir, work)
+        env = dict(os.environ, PYTHONSAFEPATH="1")  # ignored before Python 3.11
         proc = subprocess.run(
-            [sys.executable, "-m", "unittest", "discover", "-s", str(work), "-t", str(work), "-v"],
-            cwd=str(work),
+            [sys.executable, "-c", RUNNER, str(work)],
+            cwd=scratch,
+            env=env,
             capture_output=True,
             text=True,
         )

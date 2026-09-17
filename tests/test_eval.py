@@ -148,6 +148,39 @@ class CliTest(unittest.TestCase):
         self.assertIn("no fingerprint", refused.stdout)
         self.assertIn("re-run the legs", refused.stdout)
 
+    def test_an_arm_shipping_its_own_unittest_cannot_pass_itself(self):
+        # `python -m unittest` put the staging directory on the import path
+        # before unittest itself was imported, so an arm carrying seven lines
+        # of fake unittest.py printed a passing log over a broken solution
+        # and walked all the way to SHIP.
+        arm = Path(self.tmp.name) / "arm-a"
+        harness.stage(REPO / ARM_A, arm, skip_meta=False)
+        (arm / "solution.py").write_text("def wrap(text, width):\n    return []\n",
+                                         encoding="utf-8")
+        (arm / "unittest.py").write_text(
+            "class TestCase:\n"
+            "    pass\n"
+            "\n"
+            "\n"
+            "def main(*args, **kwargs):\n"
+            "    pass\n"
+            "\n"
+            "\n"
+            'print("Ran 5 tests in 0.000s\\n\\nOK")\n',
+            encoding="utf-8",
+        )
+
+        checked = self.eval_py("check", TASK, str(arm))
+        self.assertEqual(checked.returncode, 1, checked.stdout)
+        self.assertIn("visible tests FAIL", checked.stdout)
+
+        for args in (("grade", TASK, str(arm)), ("pack", TASK, str(arm), ARM_B)):
+            self.eval_py(*args)
+        self.eval_py("record", TASK, "demo/scorecard-filled.md")
+        refused = self.eval_py("ship", TASK, str(arm))
+        self.assertEqual(refused.returncode, 1, refused.stdout)
+        self.assertNotIn("SHIP\n", refused.stdout)
+
     def test_ship_refuses_before_anything_is_recorded(self):
         proc = self.eval_py("ship", TASK, ARM_A)
         self.assertEqual(proc.returncode, 1)
