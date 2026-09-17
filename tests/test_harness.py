@@ -133,6 +133,19 @@ class HarnessTest(unittest.TestCase):
         write(arm / "borrowed.py", reformatted)
         self.assertTrue(harness.contamination(arm, self.task["dir"] / harness.HIDDEN))
 
+    def test_a_hidden_test_parked_in_build_residue_is_caught(self):
+        # The skip list is about what gets staged and fingerprinted. Reading
+        # the contamination check off the same walk made a copy invisible:
+        # parked under a skipped directory, or saved with a .pyc suffix, the
+        # file was never read and the arm cleared the blindness check while
+        # holding the tests.
+        arm = build_arm(self.root / "arm-a")
+        write(arm / "__pycache__" / "borrowed.py", HIDDEN_TEST)
+        write(arm / "borrowed.pyc", HIDDEN_TEST)
+        leaks = harness.contamination(arm, self.task["dir"] / harness.HIDDEN)
+        self.assertEqual(len(leaks), 2, leaks)
+        self.assertTrue(all("test_h.py" in leak for leak in leaks), leaks)
+
     def test_an_empty_init_file_is_not_a_copied_hidden_test(self):
         # Normalizing blank lines away makes every empty file hash alike, so
         # an ordinary empty __init__.py in an arm read as a copy of an empty

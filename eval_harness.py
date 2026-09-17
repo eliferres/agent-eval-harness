@@ -96,10 +96,21 @@ SKIP_DIRS = ("__pycache__", ".pytest_cache", ".git")
 SKIP_NAMES = (".DS_Store",)
 
 
-def iter_files(root: Path) -> Iterator[Path]:
+def iter_all_files(root: Path) -> Iterator[Path]:
+    """Every file under root, nothing left out. What the arm really holds."""
     for path in sorted(root.rglob("*")):
-        if not path.is_file():
-            continue
+        if path.is_file():
+            yield path
+
+
+def iter_files(root: Path) -> Iterator[Path]:
+    """The files an arm is made of: build residue left out.
+
+    This is the staging and fingerprinting view. The contamination check
+    reads the other one, because residue is exactly where a copied test
+    would be parked.
+    """
+    for path in iter_all_files(root):
         # Relative to the arm, never the whole path: an arm that happens to
         # sit under a directory named .git walked as zero files and hashed
         # as the hash of nothing, a fingerprint no edit could move.
@@ -200,9 +211,13 @@ def contamination(arm_dir: Path, hidden_dir: Path) -> list[str]:
     """Hidden-test files found inside an arm. Non-empty means refuse to grade."""
     hidden = {content_hash(p): p.name
               for p in iter_files(hidden_dir) if content_hash(p) != EMPTY_BODY}
+    # Every file in the arm, with nothing skipped. The staging skip list has
+    # no business here: a copy parked in __pycache__, or saved with a .pyc
+    # suffix, is still a copy, and skipping it let the arm clear the check
+    # holding the tests.
     return [
         "%s matches hidden test %s" % (path.relative_to(arm_dir), hidden[content_hash(path)])
-        for path in iter_files(arm_dir)
+        for path in iter_all_files(arm_dir)
         if content_hash(path) in hidden
     ]
 
