@@ -5,6 +5,7 @@ directory, so a green suite means the README walkthrough works.
 """
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -313,6 +314,24 @@ class CliTest(unittest.TestCase):
         self.assertEqual(shipped.stdout, "")
         self.assertEqual(len(shipped.stderr.splitlines()), 1, shipped.stderr)
         self.assertIn(typo, shipped.stderr)
+
+    def test_a_file_the_harness_cannot_read_is_one_line_on_stderr(self):
+        # An unreadable file in an arm escaped the caught exceptions and
+        # reached the user as a raw traceback at exit 1.
+        if os.getuid() == 0:
+            self.skipTest("root reads everything")
+        arm = Path(self.tmp.name) / "arm-a"
+        harness.stage(REPO / ARM_A, arm, skip_meta=False)
+        locked = arm / "locked.txt"
+        locked.write_text("unreadable\n", encoding="utf-8")
+        locked.chmod(0o000)
+        self.addCleanup(locked.chmod, 0o644)
+
+        proc = self.eval_py("grade", TASK, str(arm))
+        self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+        self.assertEqual(len(proc.stderr.splitlines()), 1, proc.stderr)
+        self.assertIn("locked.txt", proc.stderr)
+        self.assertNotIn("Traceback", proc.stderr)
 
     def test_ship_refuses_before_anything_is_recorded(self):
         proc = self.eval_py("ship", TASK, ARM_A)

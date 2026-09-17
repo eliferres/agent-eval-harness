@@ -260,7 +260,10 @@ def main(argv=None) -> int:
     args = build_parser().parse_args(argv)
     try:
         return args.func(args)
-    except (ValueError, FileNotFoundError) as exc:
+    # OSError covers what the filesystem refuses as well as what is missing:
+    # a file in an arm the harness cannot read reached the user as a raw
+    # traceback at exit 1, where the docstring promises 2 on bad input.
+    except (ValueError, OSError) as exc:
         print("%s: %s" % (args.command, exc), file=sys.stderr)
         return 2
 
