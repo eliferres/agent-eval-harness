@@ -28,6 +28,8 @@ from pathlib import Path
 
 import eval_harness as harness
 
+__version__ = "1.1.0"
+
 GREEN, RED = "[green]", "[ RED ]"
 
 SCAFFOLD = {
@@ -189,7 +191,10 @@ def cmd_ship(args) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="agent_eval.py", description=__doc__.splitlines()[0])
+    # No prog=: the parser names whatever the user invoked, `agent-eval`
+    # when installed and `agent_eval.py` from a clone.
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--version", action="version", version="%(prog)s " + __version__)
     parser.add_argument("--runs", default="runs", help="where ledgers and packets are written")
     subs = parser.add_subparsers(dest="command", required=True)
 

@@ -12,10 +12,22 @@ same with any vendor and with a human in either seat.
 
 ## Quick start
 
+Install it, which puts one command called `agent-eval` on your path. It
+is not published to PyPI, so the install reads straight from the repo:
+
+```bash
+pipx install git+https://github.com/eliferres/agent-eval-harness
+agent-eval --version
+```
+
+Or clone it and run the module, which is also how you get the demo task
+and the two canned arms:
+
 ```bash
 git clone https://github.com/eliferres/agent-eval-harness.git
 cd agent-eval-harness
 python3 agent_eval.py check demo/tasks/word-wrap demo/arms/word-wrap/arm-a
+agent-eval check demo/tasks/word-wrap demo/arms/word-wrap/arm-a    # same thing, installed
 python3 -m unittest discover -s tests    # zero dependencies, Python 3.9+
 ```
 

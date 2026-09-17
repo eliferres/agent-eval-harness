@@ -26,3 +26,8 @@ jobs:
           python agent_eval.py pack demo/tasks/word-wrap demo/arms/word-wrap/arm-a demo/arms/word-wrap/arm-b
           python agent_eval.py record demo/tasks/word-wrap demo/scorecard-filled.md
           python agent_eval.py ship demo/tasks/word-wrap demo/arms/word-wrap/arm-a
+      - name: Install it and walk the demo through the installed command
+        run: |
+          python -m pip install .
+          agent-eval --version
+          agent-eval check demo/tasks/word-wrap demo/arms/word-wrap/arm-a

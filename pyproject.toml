@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-eval-harness"
+dynamic = ["version"]
+description = "Runs two blind attempts at one spec and ships neither until four legs are green"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+authors = [{ name = "Eli Ferres" }]
+
+[project.urls]
+Source = "https://github.com/eliferres/agent-eval-harness"
+Changelog = "https://github.com/eliferres/agent-eval-harness/blob/main/CHANGELOG.md"
+
+[project.scripts]
+agent-eval = "agent_eval:main"
+
+[tool.setuptools]
+py-modules = ["agent_eval", "eval_harness"]
+
+[tool.setuptools.dynamic]
+version = { attr = "agent_eval.__version__" }
