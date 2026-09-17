@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 688" role="img" aria-labelledby="t d" font-family="SF Mono, Menlo, Consolas, monospace" font-size="16">
   <title id="t">agent-eval-harness demo terminal</title>
-  <desc id="d">A terminal session: arm A clears the visible word-wrap tests, then clears the hidden edge tests it was never shown, with both test logs printed in full above each verdict line.</desc>
+  <desc id="d">A terminal session: the visible word-wrap tests run against arm A and then arm B, each test log printed in full above the verdict line for that arm.</desc>
   <style>
     .p { fill: #7ee2a8; }
     .cmd { fill: #e8eef5; }
@@ -26,15 +26,15 @@
   <text x="24" y="296" class="dim">Ran 5 tests in 0.000s</text>
   <text x="24" y="324" class="good">OK</text>
   <text x="24" y="352" class="good">check: arm-a visible tests PASS (5 ran)</text>
-  <text x="24" y="380"><tspan class="p">$</tspan><tspan class="cmd" dx="8">python3 agent_eval.py grade demo/tasks/word-wrap \</tspan></text>
-  <text x="24" y="408" class="cmd">    demo/arms/word-wrap/arm-a</text>
-  <text x="24" y="436" class="good">test_over_long_word_is_never_broken (test_wrap_edges.WrapEd…</text>
-  <text x="24" y="464" class="good">test_whitespace_only_text_returns_no_lines (test_wrap_edges…</text>
-  <text x="24" y="492" class="good">test_whitespace_runs_collapse (test_wrap_edges.WrapEdgeTest…</text>
-  <text x="24" y="520" class="good">test_width_below_one_raises (test_wrap_edges.WrapEdgeTest.t…</text>
-  <text x="24" y="548" class="good">test_width_one_puts_each_short_word_on_its_own_line (test_w…</text>
+  <text x="24" y="380"><tspan class="p">$</tspan><tspan class="cmd" dx="8">python3 agent_eval.py check demo/tasks/word-wrap \</tspan></text>
+  <text x="24" y="408" class="cmd">    demo/arms/word-wrap/arm-b</text>
+  <text x="24" y="436" class="good">test_empty_text_returns_no_lines (test_wrap.WrapTest.test_e…</text>
+  <text x="24" y="464" class="good">test_every_line_fits_the_width (test_wrap.WrapTest.test_eve…</text>
+  <text x="24" y="492" class="good">test_exact_fit_stays_on_one_line (test_wrap.WrapTest.test_e…</text>
+  <text x="24" y="520" class="good">test_packs_greedily (test_wrap.WrapTest.test_packs_greedily…</text>
+  <text x="24" y="548" class="good">test_single_word_shorter_than_width (test_wrap.WrapTest.tes…</text>
   <text x="24" y="576" class="dim">-----------------------------------------------------------…</text>
   <text x="24" y="604" class="dim">Ran 5 tests in 0.000s</text>
   <text x="24" y="632" class="good">OK</text>
-  <text x="24" y="660" class="good">grade: arm-a hidden tests PASS (5 ran, blindness verified)</text>
+  <text x="24" y="660" class="good">check: arm-b visible tests PASS (5 ran)</text>
 </svg>

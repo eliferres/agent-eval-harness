@@ -8,7 +8,7 @@ same with any vendor and with a human in either seat.
 
 ![ci](https://github.com/eliferres/agent-eval-harness/actions/workflows/ci.yml/badge.svg)
 
-<img src="demo/terminal.svg" width="660" alt="Terminal session showing one arm passing the visible word-wrap tests, then passing the hidden edge tests it was never shown, with both test logs in full.">
+<img src="demo/terminal.svg" width="660" alt="Terminal session showing the visible word-wrap tests run against arm A and then arm B, each test log in full above that arm's verdict line.">
 
 ## Try it
 

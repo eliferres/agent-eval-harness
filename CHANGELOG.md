@@ -16,7 +16,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - An empty file in an arm is no longer reported as a copy of the hidden tests. Blank lines are normalized away before the comparison, so an ordinary empty `__init__.py` beside an empty one in the hidden tests made `grade` refuse the arm and left its hidden leg red whatever the arm did. Files that normalize to nothing are skipped on both sides.
 - A bad task fixture or scorecard path now writes its one error line to standard error, not standard output, so it cannot land in a report that captures what the tool printed. The exit code is still 2.
 - `check` and `grade` now refuse an arm path that is not a directory with one line on standard error and exit 2. A typo used to run the tests against an empty staging directory and write a ledger row for a directory that is not there.
-- The demo transcript and the terminal picture in the README now come from a real run and are held there by a test that replays every command on every CI run, so the session shown cannot drift from what the tool prints.
+- The demo transcript and the terminal picture in the README now come from a real run of every command the walkthrough shows, both `ship` runs included, and are held there by a test that replays the session on every CI run, so nothing the README shows can drift from what the tool prints.
 
 ### Changed
 - Reshaped the README around the run itself: the sections are now Try it, How a run works, A run on the demo task, Scorecard format and What ship refuses, the file layout is one paragraph under Try it instead of a table, and the license is one closing line. The text under each heading is the text that was there.
