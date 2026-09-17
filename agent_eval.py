@@ -104,7 +104,7 @@ def cmd_check(args) -> int:
     arm_dir = Path(args.arm)
     result = harness.run_tests(arm_dir, task["dir"] / harness.VISIBLE)
     ledger = harness.load_ledger(Path(args.runs), task["name"])
-    harness.arm_entry(ledger, arm_dir)["visible"] = result
+    harness.record_result(ledger, arm_dir, "visible", result)
     harness.save_ledger(Path(args.runs), task["name"], ledger)
     print(result["output"])
     print("check: %s visible tests %s (%d ran)"
@@ -119,8 +119,9 @@ def cmd_grade(args) -> int:
     leaks = harness.contamination(arm_dir, hidden_dir)
 
     ledger = harness.load_ledger(Path(args.runs), task["name"])
-    entry = harness.arm_entry(ledger, arm_dir)
-    entry["blindness"] = {"clean": not leaks, "leaks": leaks, "at": harness.now()}
+    entry = harness.record_result(
+        ledger, arm_dir, "blindness", {"clean": not leaks, "leaks": leaks, "at": harness.now()}
+    )
     if leaks:
         entry.pop("hidden", None)
         harness.save_ledger(Path(args.runs), task["name"], ledger)
@@ -130,7 +131,7 @@ def cmd_grade(args) -> int:
         return 1
 
     result = harness.run_tests(arm_dir, hidden_dir)
-    entry["hidden"] = result
+    harness.record_result(ledger, arm_dir, "hidden", result)
     harness.save_ledger(Path(args.runs), task["name"], ledger)
     print(result["output"])
     print("grade: %s hidden tests %s (%d ran, blindness verified)"
@@ -178,8 +179,15 @@ def cmd_ship(args) -> int:
     arm_id = Path(args.arm).name
     ledger = harness.load_ledger(Path(args.runs), task["name"])
     floor = args.floor if args.floor is not None else int(task["judge_floor"])
-    legs = harness.ship_legs(ledger, arm_id, floor)
 
+    stale = harness.stale_results(ledger, arm_id)
+    if stale:
+        print("ship: %s / %s" % (task["name"], arm_id))
+        for line in stale:
+            print("ship: REFUSED - %s" % line)
+        return 1
+
+    legs = harness.ship_legs(ledger, arm_id, floor)
     print("ship: %s / %s" % (task["name"], arm_id))
     for name, green, detail in legs:
         print("  %s %-14s %s" % (GREEN if green else RED, name, detail))

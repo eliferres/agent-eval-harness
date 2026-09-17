@@ -4,6 +4,7 @@ Every case builds a real task fixture and real arms on disk in a temp
 directory and runs the real functions on them. No mocks, no network.
 """
 
+import os
 import sys
 import tempfile
 import unittest
@@ -206,6 +207,41 @@ class HarnessTest(unittest.TestCase):
         self.assertIn("never run (agent_eval.py grade)", details["hidden tests"])
         self.assertIn("no scorecard filed", details["blind judge"])
         self.assertIn("not recorded", details["graft review"])
+
+    def test_fingerprint_follows_content_not_caches_or_order_or_time(self):
+        # The fingerprint is what ties a recorded result to the code that
+        # earned it, so it must move when the code moves and stay still for
+        # everything that is not the code: build residue, the order the
+        # files happened to be written in, and mtimes.
+        arm = build_arm(self.root / "arm-a")
+        write(arm / "extra" / "helper.py", "def helper():\n    return 1\n")
+        baseline = harness.arm_fingerprint(arm)
+
+        write(arm / "__pycache__" / "solution.cpython-311.pyc", "bytecode")
+        write(arm / ".pytest_cache" / "lastfailed", "{}")
+        write(arm / ".DS_Store", "finder")
+        self.assertEqual(harness.arm_fingerprint(arm), baseline)
+
+        os.utime(arm / "solution.py", (0, 0))
+        self.assertEqual(harness.arm_fingerprint(arm), baseline)
+
+        rewritten = self.root / "arm-a-copy"
+        for rel in ("extra/helper.py", harness.META, "solution.py"):  # reverse write order
+            write(rewritten / rel, (arm / rel).read_text(encoding="utf-8"))
+        self.assertEqual(harness.arm_fingerprint(rewritten), baseline)
+
+        write(arm / "solution.py", BAD_ARM)
+        self.assertNotEqual(harness.arm_fingerprint(arm), baseline)
+
+    def test_a_result_with_no_fingerprint_is_unverifiable(self):
+        arm = build_arm(self.root / "arm-a")
+        # A ledger written before fingerprints existed: a result, no hash.
+        ledger = {"task": "t", "arms": {"arm-a": {"path": str(arm),
+                                                  "visible": {"ok": True, "ran": 3}}}}
+        problems = harness.stale_results(ledger, "arm-a")
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn("no fingerprint", problems[0])
+        self.assertIn("re-run the legs", problems[0])
 
     def test_a_judge_tie_the_loser_still_clears_the_floor(self):
         # Winning isn't the only way the blind-judge leg goes green: an arm

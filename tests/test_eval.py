@@ -80,6 +80,55 @@ class CliTest(unittest.TestCase):
         self.assertEqual(len(task["seed"]), 16)
         self.assertEqual(self.eval_py("init", str(scaffold)).returncode, 2)
 
+    def green_run(self, arm_dir):
+        """Take one arm all the way to four green legs. Returns the ship result."""
+        for args in (("check", TASK, arm_dir), ("grade", TASK, arm_dir),
+                     ("pack", TASK, arm_dir, ARM_B)):
+            proc = self.eval_py(*args)
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertEqual(self.eval_py("record", TASK, "demo/scorecard-filled.md").returncode, 0)
+        return self.eval_py("ship", TASK, arm_dir)
+
+    def test_an_untouched_arm_still_ships(self):
+        arm = Path(self.tmp.name) / "arm-a"
+        harness.stage(REPO / ARM_A, arm, skip_meta=False)
+        shipped = self.green_run(str(arm))
+        self.assertEqual(shipped.returncode, 0, shipped.stdout)
+        self.assertIn("SHIP", shipped.stdout)
+
+    def test_ship_refuses_an_arm_edited_after_its_legs_passed(self):
+        # The result in the ledger is only worth anything if it describes the
+        # code that is there now. Pass every leg, then swap the solution.
+        arm = Path(self.tmp.name) / "arm-a"
+        harness.stage(REPO / ARM_A, arm, skip_meta=False)
+        self.assertEqual(self.green_run(str(arm)).returncode, 0)
+
+        (arm / "solution.py").write_text("def wrap(text, width):\n    return []\n",
+                                         encoding="utf-8")
+        refused = self.eval_py("ship", TASK, str(arm))
+        self.assertEqual(refused.returncode, 1, refused.stdout)
+        self.assertIn("REFUSED", refused.stdout)
+        self.assertIn("arm-a changed after the visible tests leg tested it", refused.stdout)
+        self.assertNotIn("SHIP\n", refused.stdout)
+
+    def test_ship_refuses_a_result_recorded_without_a_fingerprint(self):
+        arm = Path(self.tmp.name) / "arm-a"
+        harness.stage(REPO / ARM_A, arm, skip_meta=False)
+        self.assertEqual(self.green_run(str(arm)).returncode, 0)
+
+        # A ledger from a version that recorded results with no hash.
+        path = harness.ledger_path(self.runs, "word-wrap")
+        ledger = json.loads(path.read_text())
+        for result in ledger["arms"]["arm-a"].values():
+            if isinstance(result, dict):
+                result.pop("fingerprint", None)
+        path.write_text(json.dumps(ledger, indent=2, sort_keys=True), encoding="utf-8")
+
+        refused = self.eval_py("ship", TASK, str(arm))
+        self.assertEqual(refused.returncode, 1, refused.stdout)
+        self.assertIn("no fingerprint", refused.stdout)
+        self.assertIn("re-run the legs", refused.stdout)
+
     def test_ship_refuses_before_anything_is_recorded(self):
         proc = self.eval_py("ship", TASK, ARM_A)
         self.assertEqual(proc.returncode, 1)

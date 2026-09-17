@@ -89,10 +89,21 @@ def load_task(task_dir: Path) -> dict:
     return manifest
 
 
+# Directories and files that are build residue, not work product: they must
+# never be staged, hashed, or counted as part of an arm.
+SKIP_DIRS = ("__pycache__", ".pytest_cache", ".git")
+SKIP_NAMES = (".DS_Store",)
+
+
 def iter_files(root: Path) -> Iterator[Path]:
     for path in sorted(root.rglob("*")):
-        if path.is_file() and "__pycache__" not in path.parts and path.name != ".DS_Store":
-            yield path
+        if not path.is_file():
+            continue
+        if any(part in SKIP_DIRS for part in path.parts):
+            continue
+        if path.name in SKIP_NAMES or path.suffix == ".pyc":
+            continue
+        yield path
 
 
 def stage(src: Path, dst: Path, skip_meta: bool = True) -> None:
@@ -198,6 +209,68 @@ def save_ledger(runs_dir: Path, task_name: str, ledger: dict) -> Path:
 
 def arm_entry(ledger: dict, arm_dir: Path) -> dict:
     return ledger["arms"].setdefault(arm_dir.name, {"path": str(arm_dir)})
+
+
+def arm_fingerprint(arm_dir: Path) -> str:
+    """Hash an arm's contents: every file's relative path and bytes, sorted.
+
+    Names and bytes only, never mtimes or inode data, so the same arm hashes
+    the same on another machine and after a copy. This is what ties a
+    recorded result to the code that produced it.
+    """
+    digest = hashlib.sha256()
+    files = sorted(iter_files(arm_dir), key=lambda p: p.relative_to(arm_dir).as_posix())
+    for path in files:
+        digest.update(path.relative_to(arm_dir).as_posix().encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def record_result(ledger: dict, arm_dir: Path, leg: str, result: dict) -> dict:
+    """File one leg's result against the arm, fingerprinted as it was tested."""
+    entry = arm_entry(ledger, arm_dir)
+    entry["path"] = str(arm_dir)
+    result["fingerprint"] = arm_fingerprint(arm_dir)
+    entry[leg] = result
+    return entry
+
+
+LEG_NAMES = {"visible": "visible tests", "blindness": "blindness check", "hidden": "hidden tests"}
+
+
+def stale_results(ledger: dict, arm_id: str) -> list[str]:
+    """Recorded results that no longer describe the arm on disk.
+
+    Empty means every result was recorded against exactly the files that are
+    there now. Anything else is a reason to refuse: a result whose arm has
+    changed since, or a result old enough to carry no fingerprint at all.
+    """
+    arm = ledger["arms"].get(arm_id, {})
+    recorded = [(leg, arm[leg]) for leg in LEG_NAMES if arm.get(leg)]
+    if not recorded:
+        return []
+
+    arm_dir = Path(arm["path"]) if arm.get("path") else None
+    if arm_dir is None or not arm_dir.is_dir():
+        return ["%s is recorded at `%s`, which is not there now - re-run the legs"
+                % (arm_id, arm.get("path", ""))]
+
+    current = arm_fingerprint(arm_dir)
+    problems = []
+    for leg, result in recorded:
+        if not result.get("fingerprint"):
+            problems.append(
+                "%s has a %s result with no fingerprint, so it cannot be verified - re-run the legs"
+                % (arm_id, LEG_NAMES[leg])
+            )
+        elif result["fingerprint"] != current:
+            problems.append(
+                "%s changed after the %s leg tested it - re-run the legs"
+                % (arm_id, LEG_NAMES[leg])
+            )
+    return problems
 
 
 # ---------- packet ----------

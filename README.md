@@ -211,6 +211,14 @@ becomes theatre:
    inherit a known order.
 4. **`ship` treats unrecorded as red.** A leg nobody ran and a leg that
    failed print the same verdict: no ship.
+5. **A result is tied to the code it was recorded against.** Each leg
+   stores a sha256 over the arm's file names and bytes, so `ship`
+   recomputes it and refuses, non-zero, when the arm was edited after the
+   leg passed, naming the arm and that leg. A result carrying no
+   fingerprint at all is refused the same way, as unverifiable rather
+   than trusted, with a line saying to re-run the legs. The hash reads
+   content only, never mtimes, so moving a run to another machine does
+   not look like tampering.
 
 ## Why two arms and a stripped packet
 
