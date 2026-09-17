@@ -333,6 +333,27 @@ class CliTest(unittest.TestCase):
         self.assertIn("locked.txt", proc.stderr)
         self.assertNotIn("Traceback", proc.stderr)
 
+    def test_a_ledger_of_the_wrong_shape_is_refused(self):
+        # Valid JSON that is not a ledger used to crash on whichever key
+        # was read first, with a raw traceback over the audit trail.
+        path = harness.ledger_path(self.runs, "word-wrap")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        shapes = {
+            "not an object": "[]",
+            "no arms": '{"task": "word-wrap"}',
+            "arms is a list": '{"task": "word-wrap", "arms": []}',
+            "packet without an order": '{"task": "word-wrap", "arms": {}, "packet": {}}',
+            "scorecard missing its fields":
+                '{"task": "word-wrap", "arms": {}, "scorecard": {"winner": "submission-1"}}',
+        }
+        for label, text in shapes.items():
+            with self.subTest(label):
+                path.write_text(text, encoding="utf-8")
+                proc = self.eval_py("ship", TASK, ARM_A)
+                self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+                self.assertEqual(len(proc.stderr.splitlines()), 1, proc.stderr)
+                self.assertNotIn("Traceback", proc.stderr)
+
     def test_ship_refuses_before_anything_is_recorded(self):
         proc = self.eval_py("ship", TASK, ARM_A)
         self.assertEqual(proc.returncode, 1)

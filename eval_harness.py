@@ -275,10 +275,37 @@ def ledger_path(runs_dir: Path, task_name: str) -> Path:
     return runs_dir / task_name / "ledger.json"
 
 
+# What a filed scorecard has to carry for the legs to read it.
+CARD_KEYS = ("scores", "winner", "graft_reviewed", "graft_notes")
+
+
+def valid_ledger(data, path: Path) -> dict:
+    """Refuse a file that is JSON but not a ledger. Raises ValueError.
+
+    The ledger is the documented audit trail, and a wrong-shaped one used
+    to surface as a traceback on whichever key was read first.
+    """
+    if not isinstance(data, dict) or not isinstance(data.get("arms"), dict):
+        raise ValueError("Expected `%s` to be a ledger holding an `arms` object" % path)
+    packet = data.get("packet")
+    if packet is not None:
+        if not isinstance(packet, dict) or not isinstance(packet.get("order"), dict):
+            raise ValueError("Expected the packet in `%s` to hold an `order` object" % path)
+    card = data.get("scorecard")
+    if card is not None:
+        missing = ([key for key in CARD_KEYS if key not in card] if isinstance(card, dict)
+                   else list(CARD_KEYS))
+        if missing:
+            raise ValueError(
+                "Expected the scorecard in `%s` to declare %s" % (path, ", ".join(missing))
+            )
+    return data
+
+
 def load_ledger(runs_dir: Path, task_name: str) -> dict:
     path = ledger_path(runs_dir, task_name)
     if path.is_file():
-        return json.loads(path.read_text(encoding="utf-8"))
+        return valid_ledger(json.loads(path.read_text(encoding="utf-8")), path)
     return {"task": task_name, "arms": {}, "packet": None, "scorecard": None}
 
 
