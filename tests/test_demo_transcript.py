@@ -33,6 +33,34 @@ SKIP_DIRS = {".git", "__pycache__", ".pytest_cache", "runs", "build", "dist"}
 STAGING = re.compile(r"(/private)?(/var/folders/[^\s\"]+?|/tmp)/tmp[A-Za-z0-9_]+")
 DURATION = re.compile(r"^(Ran \d+ tests? in )[0-9.]+s$", re.M)
 
+# Python 3.11 and up underline the failing expression under the source line
+# of a traceback frame; older versions print no such row. The underline is
+# indented, is made only of spaces, tildes and carets, and carries at least
+# one caret.
+TRACEBACK_HEAD = "Traceback (most recent call last):"
+UNDERLINE = re.compile(r"^ +[ ~^]*\^[ ~^]*$")
+
+
+def drop_underlines(text: str) -> str:
+    """Remove the caret rows a 3.11+ traceback draws, and nothing else.
+
+    A row is dropped only inside a traceback block, only directly under an
+    indented row of that block, and only if it looks like an underline. A
+    line of spaces and tildes the command really printed is output, not
+    decoration, and is kept.
+    """
+    kept, in_traceback, under_frame = [], False, False
+    for line in text.splitlines():
+        if line.strip() == TRACEBACK_HEAD:
+            in_traceback = True
+        elif in_traceback and line.strip() and not line.startswith(" "):
+            in_traceback = False  # the exception line closes the block
+        if in_traceback and under_frame and UNDERLINE.match(line):
+            continue
+        kept.append(line)
+        under_frame = bool(line.strip()) and line.startswith(" ")
+    return "\n".join(kept)
+
 
 def normalize(text: str, copy_root: Path) -> str:
     """Strip out everything that is about this machine rather than the run."""
@@ -40,11 +68,7 @@ def normalize(text: str, copy_root: Path) -> str:
         text = text.replace(root, "/path/to/checkout")
     text = STAGING.sub("/path/to/staging", text)
     text = DURATION.sub(r"\g<1>0.000s", text)
-    # Python 3.11 and up underline the failing expression with ~ and ^ under
-    # the source line; older versions print no such row.
-    kept = [line for line in text.splitlines()
-            if not (line.strip() and set(line) <= set(" ~^"))]
-    return "\n".join(kept).strip()
+    return drop_underlines(text).strip()
 
 
 def run_transcript(copy_root: Path) -> list:
@@ -97,6 +121,22 @@ def shows(drawn: str, real: str) -> bool:
     head = drawn[: -len(ELLIPSIS)]
     return (drawn.endswith(ELLIPSIS) and drawn.count(ELLIPSIS) == 1
             and len(head) < len(real) and real.startswith(head))
+
+
+class NormalizeTest(unittest.TestCase):
+    """The normalizer may only hide traceback decoration, never real output."""
+
+    def test_a_printed_line_of_spaces_and_tildes_is_kept(self):
+        printed = "grade: arm-b hidden tests FAIL\n    ~~~~~~~~\nRan 5 tests\n"
+        self.assertIn("    ~~~~~~~~", normalize(printed, REPO))
+
+    def test_a_3_11_underline_in_a_traceback_is_dropped(self):
+        failure = ("Traceback (most recent call last):\n"
+                   '  File "/path/to/staging/test_wrap_edges.py", line 15, in test_x\n'
+                   "    self.assertEqual(wrap(\"ab\", 5), [\"ab\"])\n"
+                   "    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^\n"
+                   "AssertionError: Lists differ\n")
+        self.assertNotIn("^", normalize(failure, REPO))
 
 
 class TranscriptTest(unittest.TestCase):
