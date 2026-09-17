@@ -1,17 +1,17 @@
 [
   {
     "cmd": "python3 agent_eval.py check demo/tasks/word-wrap demo/arms/word-wrap/arm-a",
-    "out": "check: arm-a visible tests PASS (5 ran)",
+    "out": "test_empty_text_returns_no_lines (test_wrap.WrapTest.test_empty_text_returns_no_lines) ... ok\ntest_every_line_fits_the_width (test_wrap.WrapTest.test_every_line_fits_the_width) ... ok\ntest_exact_fit_stays_on_one_line (test_wrap.WrapTest.test_exact_fit_stays_on_one_line) ... ok\ntest_packs_greedily (test_wrap.WrapTest.test_packs_greedily) ... ok\ntest_single_word_shorter_than_width (test_wrap.WrapTest.test_single_word_shorter_than_width) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nOK\ncheck: arm-a visible tests PASS (5 ran)",
     "status": 0
   },
   {
     "cmd": "python3 agent_eval.py grade demo/tasks/word-wrap demo/arms/word-wrap/arm-a",
-    "out": "grade: arm-a hidden tests PASS (5 ran, blindness verified)",
+    "out": "test_over_long_word_is_never_broken (test_wrap_edges.WrapEdgeTest.test_over_long_word_is_never_broken) ... ok\ntest_whitespace_only_text_returns_no_lines (test_wrap_edges.WrapEdgeTest.test_whitespace_only_text_returns_no_lines) ... ok\ntest_whitespace_runs_collapse (test_wrap_edges.WrapEdgeTest.test_whitespace_runs_collapse) ... ok\ntest_width_below_one_raises (test_wrap_edges.WrapEdgeTest.test_width_below_one_raises) ... ok\ntest_width_one_puts_each_short_word_on_its_own_line (test_wrap_edges.WrapEdgeTest.test_width_one_puts_each_short_word_on_its_own_line) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nOK\ngrade: arm-a hidden tests PASS (5 ran, blindness verified)",
     "status": 0
   },
   {
     "cmd": "python3 agent_eval.py grade demo/tasks/word-wrap demo/arms/word-wrap/arm-b",
-    "out": "AssertionError: Lists differ: ['a', 'super', 'calif', 'ragil', 'istic', 'b'] != ['a', 'supercalifragilistic', 'b']\nFAILED (failures=1)\ngrade: arm-b hidden tests FAIL (5 ran, blindness verified)",
+    "out": "FAIL: test_over_long_word_is_never_broken (test_wrap_edges.WrapEdgeTest.test_over_long_word_is_never_broken)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/path/to/staging/test_wrap_edges.py\", line 15, in test_over_long_word_is_never_broken\n    self.assertEqual(wrap(\"a supercalifragilistic b\", 5), [\"a\", \"supercalifragilistic\", \"b\"])\nAssertionError: Lists differ: ['a', 'super', 'calif', 'ragil', 'istic', 'b'] != ['a', 'supercalifragilistic', 'b']\n\nFirst differing element 1:\n'super'\n'supercalifragilistic'\n\nFirst list contains 3 additional elements.\nFirst extra element 3:\n'ragil'\n\n- ['a', 'super', 'calif', 'ragil', 'istic', 'b']\n?             ----     ----     ----\n\n+ ['a', 'supercalifragilistic', 'b']\n\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nFAILED (failures=1)\ngrade: arm-b hidden tests FAIL (5 ran, blindness verified)",
     "status": 1
   }
 ]
