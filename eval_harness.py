@@ -276,9 +276,10 @@ def stale_results(ledger: dict, arm_id: str, given_dir: Path) -> list[str]:
     and the untouched original would clear it.
 
     Empty means every result was recorded against exactly the files that are
-    there now. Anything else is a reason to refuse: an arm that is not the
-    one that was tested, a result whose arm has changed since, or a result
-    old enough to carry no fingerprint at all.
+    there now, the judging packet included. Anything else is a reason to
+    refuse: an arm that is not the one that was tested, a result or a packet
+    whose arm has changed since, or either one old enough to carry no
+    fingerprint at all.
     """
     arm = ledger["arms"].get(arm_id, {})
     recorded = [(leg, arm[leg]) for leg in LEG_NAMES if arm.get(leg)]
@@ -305,6 +306,24 @@ def stale_results(ledger: dict, arm_id: str, given_dir: Path) -> list[str]:
             problems.append(
                 "%s changed after the %s leg tested it - re-run the legs"
                 % (arm_id, LEG_NAMES[leg])
+            )
+
+    # The judge and graft legs read a scorecard written against the packet,
+    # so the packet is where their evidence lives. A scorecard filed against
+    # a packet built from code the arm no longer holds is as stale as a test
+    # result, and the judge never saw what is on disk now.
+    packet = ledger.get("packet") or {}
+    if arm_id in (packet.get("order") or {}).values():
+        packed = (packet.get("fingerprints") or {}).get(arm_id)
+        if not packed:
+            problems.append(
+                "%s went into the judging packet with no fingerprint, so what the judge "
+                "saw cannot be verified - re-run pack" % arm_id
+            )
+        elif packed != current:
+            problems.append(
+                "%s changed after the judging packet was built - re-run pack and record"
+                % arm_id
             )
     return problems
 
@@ -340,7 +359,15 @@ def build_packet(task: dict, arm_dirs: list[Path], runs_dir: Path) -> dict:
     (packet / "scorecard.md").write_text(
         SCORECARD_TEMPLATE.format(task=task["name"]), encoding="utf-8"
     )
-    return {"seed": task["seed"], "order": mapping, "packet": str(packet), "at": now()}
+    return {
+        "seed": task["seed"],
+        "order": mapping,
+        "packet": str(packet),
+        # Fingerprinted as the judge sees them, so a scorecard cannot outlive
+        # the code it was written about.
+        "fingerprints": {arm_id: arm_fingerprint(by_id[arm_id]) for arm_id in ids},
+        "at": now(),
+    }
 
 
 # ---------- scorecard ----------

@@ -181,6 +181,25 @@ class CliTest(unittest.TestCase):
         self.assertEqual(refused.returncode, 1, refused.stdout)
         self.assertNotIn("SHIP\n", refused.stdout)
 
+    def test_ship_refuses_an_arm_changed_after_the_judge_saw_it(self):
+        # The judge and graft legs rest on a packet, and the packet was bound
+        # to nothing: pass every leg, pack, record a scorecard, then append a
+        # function the judge never scored and re-run only check and grade.
+        # ship used to print SHIP over a packet that did not hold that code.
+        arm = Path(self.tmp.name) / "arm-a"
+        harness.stage(REPO / ARM_A, arm, skip_meta=False)
+        self.assertEqual(self.green_run(str(arm)).returncode, 0)
+
+        with (arm / "solution.py").open("a", encoding="utf-8") as handle:
+            handle.write("\n\ndef unscored(path):\n    return open(path).read()\n")
+        for args in (("check", TASK, str(arm)), ("grade", TASK, str(arm))):
+            self.assertEqual(self.eval_py(*args).returncode, 0)
+
+        refused = self.eval_py("ship", TASK, str(arm))
+        self.assertEqual(refused.returncode, 1, refused.stdout)
+        self.assertIn("arm-a changed after the judging packet was built", refused.stdout)
+        self.assertNotIn("SHIP\n", refused.stdout)
+
     def test_ship_refuses_before_anything_is_recorded(self):
         proc = self.eval_py("ship", TASK, ARM_A)
         self.assertEqual(proc.returncode, 1)
