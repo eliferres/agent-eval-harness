@@ -176,11 +176,12 @@ def cmd_record(args) -> int:
 
 def cmd_ship(args) -> int:
     task = harness.load_task(Path(args.task))
-    arm_id = Path(args.arm).name
+    arm_dir = Path(args.arm)
+    arm_id = arm_dir.name
     ledger = harness.load_ledger(Path(args.runs), task["name"])
     floor = args.floor if args.floor is not None else int(task["judge_floor"])
 
-    stale = harness.stale_results(ledger, arm_id)
+    stale = harness.stale_results(ledger, arm_id, arm_dir)
     if stale:
         print("ship: %s / %s" % (task["name"], arm_id))
         for line in stale:

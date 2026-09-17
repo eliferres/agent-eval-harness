@@ -215,8 +215,10 @@ becomes theatre:
    leg passed, naming the arm and that leg. A result carrying no
    fingerprint at all is refused the same way, as unverifiable rather
    than trusted, with a line saying to re-run the legs. The hash reads
-   content only, never mtimes, so moving a run to another machine does
-   not look like tampering.
+   content only, never mtimes, so a run that is copied file for file
+   still verifies. `ship` also checks that the directory you name is the
+   directory the legs were run against, resolved, so a copy of an arm
+   made somewhere else cannot answer for the original.
 
 ## Why two arms and a stripped packet
 

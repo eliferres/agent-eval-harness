@@ -208,7 +208,9 @@ def save_ledger(runs_dir: Path, task_name: str, ledger: dict) -> Path:
 
 
 def arm_entry(ledger: dict, arm_dir: Path) -> dict:
-    return ledger["arms"].setdefault(arm_dir.name, {"path": str(arm_dir)})
+    # Resolved, not as typed: a relative path recorded from one directory
+    # means nothing to a command run from another.
+    return ledger["arms"].setdefault(arm_dir.name, {"path": str(arm_dir.resolve())})
 
 
 def arm_fingerprint(arm_dir: Path) -> str:
@@ -235,7 +237,7 @@ def arm_fingerprint(arm_dir: Path) -> str:
 def record_result(ledger: dict, arm_dir: Path, leg: str, result: dict) -> dict:
     """File one leg's result against the arm, fingerprinted as it was tested."""
     entry = arm_entry(ledger, arm_dir)
-    entry["path"] = str(arm_dir)
+    entry["path"] = str(arm_dir.resolve())
     result["fingerprint"] = arm_fingerprint(arm_dir)
     entry[leg] = result
     return entry
@@ -244,12 +246,18 @@ def record_result(ledger: dict, arm_dir: Path, leg: str, result: dict) -> dict:
 LEG_NAMES = {"visible": "visible tests", "blindness": "blindness check", "hidden": "hidden tests"}
 
 
-def stale_results(ledger: dict, arm_id: str) -> list[str]:
-    """Recorded results that no longer describe the arm on disk.
+def stale_results(ledger: dict, arm_id: str, given_dir: Path) -> list[str]:
+    """Recorded results that no longer describe the arm the caller named.
+
+    `given_dir` is the directory the caller asked about. Arms are keyed by
+    folder name, so without this the ledger would answer for any directory
+    of that name: copy an arm elsewhere, edit the copy, ask about the copy,
+    and the untouched original would clear it.
 
     Empty means every result was recorded against exactly the files that are
-    there now. Anything else is a reason to refuse: a result whose arm has
-    changed since, or a result old enough to carry no fingerprint at all.
+    there now. Anything else is a reason to refuse: an arm that is not the
+    one that was tested, a result whose arm has changed since, or a result
+    old enough to carry no fingerprint at all.
     """
     arm = ledger["arms"].get(arm_id, {})
     recorded = [(leg, arm[leg]) for leg in LEG_NAMES if arm.get(leg)]
@@ -260,6 +268,9 @@ def stale_results(ledger: dict, arm_id: str) -> list[str]:
     if arm_dir is None or not arm_dir.is_dir():
         return ["%s is recorded at `%s`, which is not there now - re-run the legs"
                 % (arm_id, arm.get("path", ""))]
+    if arm_dir.resolve() != given_dir.resolve():
+        return ["%s was tested at `%s`, not at `%s` - re-run the legs against this directory"
+                % (arm_id, arm_dir.resolve(), given_dir.resolve())]
 
     current = arm_fingerprint(arm_dir)
     problems = []

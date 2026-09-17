@@ -111,6 +111,25 @@ class CliTest(unittest.TestCase):
         self.assertIn("arm-a changed after the visible tests leg tested it", refused.stdout)
         self.assertNotIn("SHIP\n", refused.stdout)
 
+    def test_ship_refuses_an_arm_copied_somewhere_else_and_edited(self):
+        # Arms are keyed by folder name. A copy under a different parent
+        # keeps the name, so without a path check the untouched original
+        # would clear the edited copy.
+        arm = Path(self.tmp.name) / "arm-a"
+        harness.stage(REPO / ARM_A, arm, skip_meta=False)
+        self.assertEqual(self.green_run(str(arm)).returncode, 0)
+
+        copy = Path(self.tmp.name) / "elsewhere" / "arm-a"
+        harness.stage(arm, copy, skip_meta=False)
+        with (copy / "solution.py").open("a", encoding="utf-8") as handle:
+            handle.write("\nSMUGGLED = True\n")
+
+        refused = self.eval_py("ship", TASK, str(copy))
+        self.assertEqual(refused.returncode, 1, refused.stdout)
+        self.assertIn("REFUSED", refused.stdout)
+        self.assertIn(str(copy.resolve()), refused.stdout)
+        self.assertNotIn("SHIP\n", refused.stdout)
+
     def test_ship_refuses_a_result_recorded_without_a_fingerprint(self):
         arm = Path(self.tmp.name) / "arm-a"
         harness.stage(REPO / ARM_A, arm, skip_meta=False)

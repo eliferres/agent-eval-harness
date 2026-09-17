@@ -248,12 +248,27 @@ class HarnessTest(unittest.TestCase):
         folded.unlink()
         self.assertNotEqual(harness.arm_fingerprint(arm), baseline)
 
+    def test_a_relative_path_recorded_here_verifies_from_another_directory(self):
+        # `check` may be run from inside the arm's parent and `ship` from
+        # anywhere else. The ledger stores the resolved path, so the two
+        # still describe the same directory.
+        arm = build_arm(self.root / "arm-a")
+        ledger = {"task": "t", "arms": {}}
+        here = Path.cwd()
+        os.chdir(self.root)
+        try:
+            harness.record_result(ledger, Path("arm-a"), "visible", {"ok": True, "ran": 1})
+        finally:
+            os.chdir(here)
+
+        self.assertEqual(harness.stale_results(ledger, "arm-a", arm), [])
+
     def test_a_result_with_no_fingerprint_is_unverifiable(self):
         arm = build_arm(self.root / "arm-a")
         # A ledger written before fingerprints existed: a result, no hash.
         ledger = {"task": "t", "arms": {"arm-a": {"path": str(arm),
                                                   "visible": {"ok": True, "ran": 3}}}}
-        problems = harness.stale_results(ledger, "arm-a")
+        problems = harness.stale_results(ledger, "arm-a", arm)
         self.assertEqual(len(problems), 1, problems)
         self.assertIn("no fingerprint", problems[0])
         self.assertIn("re-run the legs", problems[0])
