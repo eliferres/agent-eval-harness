@@ -4,6 +4,7 @@ Every case builds a real task fixture and real arms on disk in a temp
 directory and runs the real functions on them. No mocks, no network.
 """
 
+import contextlib
 import os
 import sys
 import tempfile
@@ -75,6 +76,17 @@ def build_arm(root: Path, source: str = GOOD_ARM) -> Path:
     write(root / "solution.py", source)
     write(root / harness.META, '{"arm": "%s"}\n' % root.name)
     return root
+
+
+@contextlib.contextmanager
+def invoked_as(name: str):
+    """Run the block as if the user had typed `name` to start the process."""
+    original = sys.argv[0]
+    sys.argv[0] = name
+    try:
+        yield
+    finally:
+        sys.argv[0] = original
 
 
 def ledger_with(**over) -> dict:
@@ -206,7 +218,8 @@ class HarnessTest(unittest.TestCase):
         # pack, or record run against it) - the "never run" branch of every
         # leg, not just one of them going red.
         empty_ledger = {"task": "t", "arms": {}, "packet": None, "scorecard": None}
-        legs = harness.ship_legs(empty_ledger, "never-touched", 8)
+        with invoked_as("agent_eval.py"):
+            legs = harness.ship_legs(empty_ledger, "never-touched", 8)
         self.assertEqual(
             [name for name, _, _ in legs],
             ["visible tests", "hidden tests", "blind judge", "graft review"],
@@ -217,6 +230,21 @@ class HarnessTest(unittest.TestCase):
         self.assertIn("never run (agent_eval.py grade)", details["hidden tests"])
         self.assertIn("no scorecard filed", details["blind judge"])
         self.assertIn("not recorded", details["graft review"])
+
+    def test_a_red_leg_names_the_command_that_was_invoked(self):
+        # Installed, there is no agent_eval.py on the machine to run, so a
+        # hint naming that file sent the reader after something they do not
+        # have. The hint says whatever started the process.
+        empty_ledger = {"task": "t", "arms": {}, "packet": None, "scorecard": None}
+        for argv0, expected in (("/opt/homebrew/bin/agent-eval", "agent-eval"),
+                                ("agent_eval.py", "agent_eval.py")):
+            with self.subTest(argv0), invoked_as(argv0):
+                details = {name: detail
+                           for name, _, detail in harness.ship_legs(empty_ledger, "x", 8)}
+                self.assertEqual(details["visible tests"], "never run (%s check)" % expected)
+                self.assertEqual(details["hidden tests"], "never run (%s grade)" % expected)
+                self.assertEqual(details["blind judge"],
+                                 "no scorecard filed (%s pack, then record)" % expected)
 
     def test_fingerprint_follows_content_not_caches_or_order_or_time(self):
         # The fingerprint is what ties a recorded result to the code that

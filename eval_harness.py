@@ -279,6 +279,16 @@ def record_result(ledger: dict, arm_dir: Path, leg: str, result: dict) -> dict:
 LEG_NAMES = {"visible": "visible tests", "blindness": "blindness check", "hidden": "hidden tests"}
 
 
+def prog() -> str:
+    """The name the run was invoked by, for a hint the reader can retype.
+
+    `agent-eval` when installed, `agent_eval.py` from a clone. Installed
+    there is no agent_eval.py anywhere on the machine, so naming the file
+    told the reader to run something they do not have.
+    """
+    return os.path.basename(sys.argv[0]) or "agent-eval"
+
+
 def stale_results(ledger: dict, arm_id: str, given_dir: Path) -> list[str]:
     """Recorded results that no longer describe the arm the caller named.
 
@@ -467,13 +477,14 @@ def parse_scorecard(text: str) -> dict:
 def ship_legs(ledger: dict, arm_id: str, judge_floor: int) -> list[tuple]:
     """The four legs for one arm: (name, green?, detail). All green or no ship."""
     arm = ledger["arms"].get(arm_id, {})
+    command = prog()
     legs = []
 
     visible = arm.get("visible")
     legs.append(
         ("visible tests", bool(visible and visible["ok"]),
          "%d passed" % visible["ran"] if visible and visible["ok"]
-         else "failing" if visible else "never run (agent_eval.py check)")
+         else "failing" if visible else "never run (%s check)" % command)
     )
 
     hidden = arm.get("hidden")
@@ -483,13 +494,14 @@ def ship_legs(ledger: dict, arm_id: str, judge_floor: int) -> list[tuple]:
         ("hidden tests", hidden_ok,
          "%d passed, blindness verified" % hidden["ran"] if hidden_ok
          else "arm contains hidden tests" if blind and not blind["clean"]
-         else "failing" if hidden else "never run (agent_eval.py grade)")
+         else "failing" if hidden else "never run (%s grade)" % command)
     )
 
     card = ledger.get("scorecard")
     packet = ledger.get("packet")
     if not card or not packet:
-        legs.append(("blind judge", False, "no scorecard filed (agent_eval.py pack, then record)"))
+        legs.append(("blind judge", False,
+                     "no scorecard filed (%s pack, then record)" % command))
     else:
         slot = next((s for s, a in packet["order"].items() if a == arm_id), None)
         score = card["scores"].get(slot, 0)
