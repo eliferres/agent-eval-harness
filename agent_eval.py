@@ -157,7 +157,7 @@ def cmd_grade(args) -> int:
 
 def cmd_pack(args) -> int:
     task = harness.load_task(Path(args.task))
-    arms = [Path(a) for a in args.arms]
+    arms = [load_arm(a) for a in args.arms]
     key = harness.build_packet(task, arms, Path(args.runs))
     ledger = harness.load_ledger(Path(args.runs), task["name"])
     for arm in arms:
@@ -192,7 +192,7 @@ def cmd_record(args) -> int:
 
 def cmd_ship(args) -> int:
     task = harness.load_task(Path(args.task))
-    arm_dir = Path(args.arm)
+    arm_dir = load_arm(args.arm)
     arm_id = arm_dir.name
     ledger = harness.load_ledger(Path(args.runs), task["name"])
     floor = args.floor if args.floor is not None else int(task["judge_floor"])

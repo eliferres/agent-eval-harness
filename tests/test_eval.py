@@ -273,6 +273,25 @@ class CliTest(unittest.TestCase):
                 self.assertIn(typo, proc.stderr)
         self.assertFalse(harness.ledger_path(self.runs, "word-wrap").exists())
 
+    def test_pack_and_ship_refuse_a_typod_arm_too(self):
+        # pack took its two arm paths raw, so a typo built a one-armed
+        # packet and a judge's score landed against a directory that is not
+        # there, and ship printed a four-leg card for it, which reads as an
+        # arm that was evaluated and failed rather than as no such arm.
+        typo = "demo/arms/word-wrap/arm-aa"
+        packed = self.eval_py("pack", TASK, ARM_A, typo)
+        self.assertEqual(packed.returncode, 2, packed.stdout + packed.stderr)
+        self.assertEqual(packed.stdout, "")
+        self.assertEqual(len(packed.stderr.splitlines()), 1, packed.stderr)
+        self.assertIn(typo, packed.stderr)
+        self.assertFalse(harness.ledger_path(self.runs, "word-wrap").exists())
+
+        shipped = self.eval_py("ship", TASK, typo)
+        self.assertEqual(shipped.returncode, 2, shipped.stdout + shipped.stderr)
+        self.assertEqual(shipped.stdout, "")
+        self.assertEqual(len(shipped.stderr.splitlines()), 1, shipped.stderr)
+        self.assertIn(typo, shipped.stderr)
+
     def test_ship_refuses_before_anything_is_recorded(self):
         proc = self.eval_py("ship", TASK, ARM_A)
         self.assertEqual(proc.returncode, 1)
