@@ -1,6 +1,8 @@
 # agent-eval-harness
 
-A model that writes the code and grades it is marking its own homework. agent-eval-harness runs two blind attempts at one spec, holds tests the implementer never sees, hands both to a judge who cannot tell whose work is whose, and refuses to ship until all four legs are green.
+A model that writes the code and grades it is marking its own homework. agent-eval-harness runs two blind attempts at one spec, holds tests the implementer never sees, and hands both to a judge who cannot tell whose work is whose. Each arm's tests run in a separate process, every recorded result is bound to a hash of the arm's files, the judging packet is bound to the arms it was built from, and `ship` refuses to print its word while a leg is missing, red, or recorded against code that has changed since.
+
+What that is for: keeping agents you already run honest across a run, and catching drift, accidents, and a result that no longer describes the code on disk. What it is not is a sandbox. It runs the arm's code, in the same process as the test runner that judges it, so a submission written to defeat the harness defeats it: eight lines in an arm replace `unittest.TestCase.run` and a solution returning nothing reports five passing tests. If you are grading submissions you do not trust, run this inside a container.
 
 The harness never calls a model. Arms are opaque directories produced by
 whatever agent, tool, or human you point at the spec, so it works the
@@ -256,8 +258,13 @@ forever the moment its directory is deleted.
 - One test run gets 300 seconds. An arm that hangs is killed at the limit
   and its leg goes red with "timed out"; a suite that legitimately takes
   longer needs `TEST_TIMEOUT` in `eval_harness.py` raised.
-- An arm's code is run, and is trusted that far. The harness catches drift
-  and accidents, and an arm that deliberately shadows other standard library
-  modules its tests import is outside what it can catch.
+- The harness is not a sandbox, and an arm's code is trusted that far. It
+  runs in the same process as the test runner that judges it, so an arm
+  written to defeat the harness defeats it: eight lines replacing
+  `unittest.TestCase.run` make a failing solution report five passing tests,
+  and no amount of further patching closes that while the design stands.
+  Blindness, the fingerprints and the four legs hold against drift and
+  accidents, which is what they are for. Submissions you do not trust belong
+  in a container.
 
 MIT. See LICENSE.
