@@ -99,9 +99,21 @@ def cmd_init(args) -> int:
     return 0
 
 
+def load_arm(raw: str) -> Path:
+    """Read an arm directory off the command line, refusing a typo.
+
+    Without this a mistyped path ran the tests against an empty staging
+    directory and filed a ledger row for a directory that is not there.
+    """
+    arm_dir = Path(raw)
+    if not arm_dir.is_dir():
+        raise ValueError("Expected `%s` to be an arm directory" % arm_dir)
+    return arm_dir
+
+
 def cmd_check(args) -> int:
     task = harness.load_task(Path(args.task))
-    arm_dir = Path(args.arm)
+    arm_dir = load_arm(args.arm)
     result = harness.run_tests(arm_dir, task["dir"] / harness.VISIBLE)
     ledger = harness.load_ledger(Path(args.runs), task["name"])
     harness.record_result(ledger, arm_dir, "visible", result)
@@ -114,7 +126,7 @@ def cmd_check(args) -> int:
 
 def cmd_grade(args) -> int:
     task = harness.load_task(Path(args.task))
-    arm_dir = Path(args.arm)
+    arm_dir = load_arm(args.arm)
     hidden_dir = task["dir"] / harness.HIDDEN
     leaks = harness.contamination(arm_dir, hidden_dir)
 

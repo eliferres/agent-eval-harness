@@ -10,6 +10,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Added packaging, so `pipx install git+https://github.com/eliferres/agent-eval-harness` puts one command, `agent-eval`, on your path; it takes the same subcommands as the module and `agent-eval --version` prints the version.
 
 ### Fixed
+- `check` and `grade` now refuse an arm path that is not a directory with one line on standard error and exit 2. A typo used to run the tests against an empty staging directory and write a ledger row for a directory that is not there.
 - A red leg in `ship` now names the command you invoked. Installed as `agent-eval` it told you to run `agent_eval.py check`, a file an install does not put anywhere on your machine.
 - A bad task fixture or scorecard path now writes its one error line to standard error, not standard output, so it cannot land in a report that captures what the tool printed. The exit code is still 2.
 - An empty file in an arm is no longer reported as a copy of the hidden tests. Blank lines are normalized away before the comparison, so an ordinary empty `__init__.py` beside an empty one in the hidden tests made `grade` refuse the arm and left its hidden leg red whatever the arm did. Files that normalize to nothing are skipped on both sides.

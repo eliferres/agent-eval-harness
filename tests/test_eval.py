@@ -209,6 +209,19 @@ class CliTest(unittest.TestCase):
         self.assertEqual(len(proc.stderr.splitlines()), 1, proc.stderr)
         self.assertIn("demo/tasks/no-such-task", proc.stderr)
 
+    def test_a_typod_arm_directory_is_refused_before_anything_runs(self):
+        # A path that is not there used to run the tests against an empty
+        # staging directory and file a ledger row for it.
+        typo = "demo/arms/word-wrap/arm-aa"
+        for command in ("check", "grade"):
+            with self.subTest(command):
+                proc = self.eval_py(command, TASK, typo)
+                self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+                self.assertEqual(proc.stdout, "")
+                self.assertEqual(len(proc.stderr.splitlines()), 1, proc.stderr)
+                self.assertIn(typo, proc.stderr)
+        self.assertFalse(harness.ledger_path(self.runs, "word-wrap").exists())
+
     def test_ship_refuses_before_anything_is_recorded(self):
         proc = self.eval_py("ship", TASK, ARM_A)
         self.assertEqual(proc.returncode, 1)
