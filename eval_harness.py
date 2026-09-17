@@ -175,9 +175,14 @@ def run_tests(arm_dir: Path, tests_dir: Path) -> dict:
         )
     output = (proc.stdout + proc.stderr).strip()
     found = RAN.search(output)
+    ran = int(found.group(1)) if found else 0
     return {
-        "ok": proc.returncode == 0,
-        "ran": int(found.group(1)) if found else 0,
+        # A clean exit status with no tests in it is not a pass. An arm that
+        # ends the process before the first test runs, and a run that
+        # discovered nothing to run, both left the status at 0 and the count
+        # at zero, and the leg went green over code nobody tested.
+        "ok": proc.returncode == 0 and ran > 0,
+        "ran": ran,
         "at": now(),
         "output": "\n".join(output.splitlines()[-25:]),
     }
@@ -292,6 +297,22 @@ def record_result(ledger: dict, arm_dir: Path, leg: str, result: dict) -> dict:
 
 
 LEG_NAMES = {"visible": "visible tests", "blindness": "blindness check", "hidden": "hidden tests"}
+
+
+def ran_and_passed(result) -> bool:
+    """A test leg is green only when tests both ran and passed.
+
+    A row with no count comes from a version that did not record one, or
+    from a run that ended before a test did: neither is evidence.
+    """
+    return bool(result and result.get("ok") and result.get("ran"))
+
+
+def no_tests_line(result) -> str:
+    """The detail for a leg that exited clean without running anything."""
+    if result.get("ok") and not result.get("ran"):
+        return "no tests ran"
+    return ""
 
 
 def prog() -> str:
@@ -496,20 +517,23 @@ def ship_legs(ledger: dict, arm_id: str, judge_floor: int) -> list[tuple]:
     legs = []
 
     visible = arm.get("visible")
+    visible_ok = ran_and_passed(visible)
     legs.append(
-        ("visible tests", bool(visible and visible["ok"]),
-         "%d passed" % visible["ran"] if visible and visible["ok"]
-         else "failing" if visible else "never run (%s check)" % command)
+        ("visible tests", visible_ok,
+         "%d passed" % visible["ran"] if visible_ok
+         else no_tests_line(visible) or "failing" if visible
+         else "never run (%s check)" % command)
     )
 
     hidden = arm.get("hidden")
     blind = arm.get("blindness")
-    hidden_ok = bool(hidden and hidden["ok"] and blind and blind["clean"])
+    hidden_ok = ran_and_passed(hidden) and bool(blind and blind["clean"])
     legs.append(
         ("hidden tests", hidden_ok,
          "%d passed, blindness verified" % hidden["ran"] if hidden_ok
          else "arm contains hidden tests" if blind and not blind["clean"]
-         else "failing" if hidden else "never run (%s grade)" % command)
+         else no_tests_line(hidden) or "failing" if hidden
+         else "never run (%s grade)" % command)
     )
 
     card = ledger.get("scorecard")

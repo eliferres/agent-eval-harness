@@ -200,6 +200,28 @@ class CliTest(unittest.TestCase):
         self.assertIn("arm-a changed after the judging packet was built", refused.stdout)
         self.assertNotIn("SHIP\n", refused.stdout)
 
+    def test_an_arm_that_ends_the_process_cannot_pass_a_leg(self):
+        # Two lines in the arm end the run before the first test does. The
+        # status is 0 and no test ran, which read as "visible tests PASS
+        # (0 ran)", "hidden tests PASS (0 ran)" and SHIP at exit 0 over a
+        # solution that returns nothing.
+        arm = Path(self.tmp.name) / "arm-a"
+        harness.stage(REPO / ARM_A, arm, skip_meta=False)
+        (arm / "solution.py").write_text("import os\nos._exit(0)\n", encoding="utf-8")
+
+        for command in ("check", "grade"):
+            with self.subTest(command):
+                proc = self.eval_py(command, TASK, str(arm))
+                self.assertEqual(proc.returncode, 1, proc.stdout)
+                self.assertIn("FAIL (0 ran", proc.stdout)
+
+        for args in (("pack", TASK, str(arm), ARM_B),):
+            self.eval_py(*args)
+        self.eval_py("record", TASK, "demo/scorecard-filled.md")
+        refused = self.eval_py("ship", TASK, str(arm))
+        self.assertEqual(refused.returncode, 1, refused.stdout)
+        self.assertNotIn("SHIP\n", refused.stdout)
+
     def test_a_bad_task_path_is_one_line_on_stderr(self):
         # Exit 2 with one line, and the line goes where an error line goes:
         # a caller piping stdout into a report used to collect this one.

@@ -174,6 +174,26 @@ class HarnessTest(unittest.TestCase):
         self.assertFalse(bad["ok"])
         self.assertIn("FAILED", bad["output"])
 
+    def test_a_run_that_discovered_no_tests_is_not_a_pass(self):
+        # Exit status alone said pass. A test module named so discovery
+        # never picks it up leaves a clean status and nothing run, and the
+        # leg went green over a solution no test had touched.
+        empty = self.root / "no-tests"
+        write(empty / "helper_checks.py", VISIBLE_TEST)
+        result = harness.run_tests(build_arm(self.root / "arm-a"), empty)
+        self.assertEqual(result["ran"], 0)
+        self.assertFalse(result["ok"], result["output"])
+
+    def test_a_leg_that_ran_nothing_is_red_and_says_so(self):
+        for label, leg, arm in (
+            ("visible", "visible tests", {"visible": {"ok": True, "ran": 0}}),
+            ("hidden", "hidden tests", {"hidden": {"ok": True, "ran": 0}}),
+        ):
+            with self.subTest(label):
+                legs = harness.ship_legs(ledger_with(arm=arm), "arm-a", 8)
+                reds = [(name, detail) for name, green, detail in legs if not green]
+                self.assertEqual(reds, [(leg, "no tests ran")])
+
     def test_packet_carries_no_arm_identity(self):
         arms = [build_arm(self.root / "arm-a"), build_arm(self.root / "arm-b", BAD_ARM)]
         key = harness.build_packet(self.task, arms, self.root / "runs")
