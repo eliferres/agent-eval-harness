@@ -8,7 +8,7 @@ same with any vendor and with a human in either seat.
 
 ![ci](https://github.com/eliferres/agent-eval-harness/actions/workflows/ci.yml/badge.svg)
 
-<img src="demo/terminal.svg" width="660" alt="Terminal session showing the visible word-wrap tests run against arm A and then arm B, each test log in full above that arm's verdict line.">
+<img src="demo/terminal.svg" width="660" alt="Terminal session showing one arm passing the visible word-wrap tests, then passing the hidden edge tests it was never shown, with both test logs in full.">
 
 ## Try it
 
@@ -77,29 +77,29 @@ refuses while any is red or unrecorded.
 Every command below runs from a fresh clone. Output is what the harness
 actually prints, trimmed to the last line where a test log precedes it.
 
-**1. Both arms pass the tests they can see.**
+**1. Arm A passes the tests it can see, then the ones it cannot.**
 
 ```bash
 python3 agent_eval.py check demo/tasks/word-wrap demo/arms/word-wrap/arm-a
-python3 agent_eval.py check demo/tasks/word-wrap demo/arms/word-wrap/arm-b
+python3 agent_eval.py grade demo/tasks/word-wrap demo/arms/word-wrap/arm-a
 ```
 
 ```
 check: arm-a visible tests PASS (5 ran)
-check: arm-b visible tests PASS (5 ran)
+grade: arm-a hidden tests PASS (5 ran, blindness verified)
 ```
 
-**2. The hidden tests separate them.** Arm B breaks words that are longer
-than the wrap width. `SPEC.md` forbids that, the visible tests never
-probe it, and a hidden test does.
+**2. Arm B passes what it can see, and a hidden test catches it.** Arm B
+breaks words that are longer than the wrap width. `SPEC.md` forbids that,
+the visible tests never probe it, and a hidden test does.
 
 ```bash
-python3 agent_eval.py grade demo/tasks/word-wrap demo/arms/word-wrap/arm-a
+python3 agent_eval.py check demo/tasks/word-wrap demo/arms/word-wrap/arm-b
 python3 agent_eval.py grade demo/tasks/word-wrap demo/arms/word-wrap/arm-b
 ```
 
 ```
-grade: arm-a hidden tests PASS (5 ran, blindness verified)
+check: arm-b visible tests PASS (5 ran)
 grade: arm-b hidden tests FAIL (5 ran, blindness verified)
 ```
 

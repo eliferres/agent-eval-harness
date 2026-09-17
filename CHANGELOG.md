@@ -19,7 +19,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The demo transcript and the terminal picture in the README now come from a real run of every command the walkthrough shows, both `ship` runs included, and are held there by a test that replays the session on every CI run, so nothing the README shows can drift from what the tool prints.
 
 ### Changed
-- Reshaped the README around the run itself: the sections are now Try it, How a run works, A run on the demo task, Scorecard format and What ship refuses, the file layout is one paragraph under Try it instead of a table, and the license is one closing line. The text under each heading is the text that was there.
+- Reshaped the README around the run itself: the sections are now Try it, How a run works, A run on the demo task, Scorecard format and What ship refuses, the file layout is one paragraph under Try it instead of a table, and the license is one closing line. The walkthrough now takes one arm all the way through, `check` then `grade`, before starting the other, instead of grouping both arms under each command. The text under each heading is the text that was there.
 - Renamed `eval.py` to `agent_eval.py` and `harness.py` to `eval_harness.py`, so installing this tool cannot shadow another package that owns the generic top-level name `eval` or `harness`.
 
 ## [1.1.0](https://github.com/eliferres/agent-eval-harness/releases/tag/v1.1.0) - 2026-09-03
