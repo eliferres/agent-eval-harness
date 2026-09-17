@@ -245,7 +245,7 @@ def main(argv=None) -> int:
     try:
         return args.func(args)
     except (ValueError, FileNotFoundError) as exc:
-        print("%s: %s" % (args.command, exc))
+        print("%s: %s" % (args.command, exc), file=sys.stderr)
         return 2
 
 

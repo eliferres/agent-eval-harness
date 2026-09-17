@@ -200,6 +200,15 @@ class CliTest(unittest.TestCase):
         self.assertIn("arm-a changed after the judging packet was built", refused.stdout)
         self.assertNotIn("SHIP\n", refused.stdout)
 
+    def test_a_bad_task_path_is_one_line_on_stderr(self):
+        # Exit 2 with one line, and the line goes where an error line goes:
+        # a caller piping stdout into a report used to collect this one.
+        proc = self.eval_py("check", "demo/tasks/no-such-task", ARM_A)
+        self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+        self.assertEqual(proc.stdout, "")
+        self.assertEqual(len(proc.stderr.splitlines()), 1, proc.stderr)
+        self.assertIn("demo/tasks/no-such-task", proc.stderr)
+
     def test_ship_refuses_before_anything_is_recorded(self):
         proc = self.eval_py("ship", TASK, ARM_A)
         self.assertEqual(proc.returncode, 1)
