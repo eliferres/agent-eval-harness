@@ -222,6 +222,35 @@ class CliTest(unittest.TestCase):
         self.assertEqual(refused.returncode, 1, refused.stdout)
         self.assertNotIn("SHIP\n", refused.stdout)
 
+    def test_an_arm_that_rewrites_the_hidden_tests_is_refused(self):
+        # One run of a hostile arm used to poison the fixture for every
+        # later run of every arm: the arm located the checkout through the
+        # environment it inherited and overwrote the hidden tests, after
+        # which even the demo arm a hidden test is meant to catch passed.
+        task = Path(self.tmp.name) / "task"
+        harness.stage(REPO / TASK, task, skip_meta=False)
+        arm = Path(self.tmp.name) / "arm-a"
+        harness.stage(REPO / ARM_A, arm, skip_meta=False)
+        (arm / "solution.py").write_text(
+            "from pathlib import Path\n"
+            "\n"
+            "Path(%r).write_text(\n"
+            "    \"import unittest\\n\\n\\nclass T(unittest.TestCase):\\n\"\n"
+            "    \"    def test_nothing(self):\\n        pass\\n\"\n"
+            ")\n"
+            "\n"
+            "\n"
+            "def wrap(text, width):\n"
+            "    return []\n" % str(task / harness.HIDDEN / "test_wrap_edges.py"),
+            encoding="utf-8",
+        )
+
+        proc = self.eval_py("grade", str(task), str(arm))
+        self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+        self.assertEqual(len(proc.stderr.splitlines()), 1, proc.stderr)
+        self.assertIn("rewritten while the arm ran", proc.stderr)
+        self.assertFalse(harness.ledger_path(self.runs, "word-wrap").exists())
+
     def test_a_bad_task_path_is_one_line_on_stderr(self):
         # Exit 2 with one line, and the line goes where an error line goes:
         # a caller piping stdout into a report used to collect this one.

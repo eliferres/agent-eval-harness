@@ -136,6 +136,12 @@ def stage(src: Path, dst: Path, skip_meta: bool = True) -> None:
 
 RAN = re.compile(r"^Ran (\d+) tests?", re.M)
 
+# Environment variables that carry the caller's working directory into the
+# child. The child already runs from a scratch directory, so these were the
+# last thing pointing home: an arm read one of them, walked to the checkout,
+# and rewrote the hidden tests it was about to be judged by.
+CWD_VARS = ("PWD", "OLDPWD")
+
 # The child that runs one staged arm. `unittest` is imported before the
 # staging directory reaches sys.path, which is what stops an arm shipping
 # its own unittest.py from answering for the test run: discover puts the
@@ -166,6 +172,8 @@ def run_tests(arm_dir: Path, tests_dir: Path) -> dict:
         stage(arm_dir, work)
         stage(tests_dir, work)
         env = dict(os.environ, PYTHONSAFEPATH="1")  # ignored before Python 3.11
+        for name in CWD_VARS:
+            env.pop(name, None)
         proc = subprocess.run(
             [sys.executable, "-c", RUNNER, str(work)],
             cwd=scratch,
@@ -186,6 +194,27 @@ def run_tests(arm_dir: Path, tests_dir: Path) -> dict:
         "at": now(),
         "output": "\n".join(output.splitlines()[-25:]),
     }
+
+
+def fixture_fingerprint(task_dir: Path) -> str:
+    """Hash both of a task's test directories.
+
+    Taken before a run and checked after it. The arm's code runs inside
+    that window, and a run that edits the tests it is judged by poisons
+    the fixture for every later run of every arm.
+    """
+    both = "|".join(arm_fingerprint(task_dir / name) for name in (VISIBLE, HIDDEN))
+    return hashlib.sha256(both.encode("ascii")).hexdigest()
+
+
+def check_fixture(task_dir: Path, before: str) -> None:
+    """Refuse when the run changed the task's tests. Raises ValueError."""
+    if fixture_fingerprint(task_dir) != before:
+        raise ValueError(
+            "Expected the tests in `%s` to be the tests the run started with: they were "
+            "rewritten while the arm ran, so this result is worthless and the fixture needs "
+            "restoring" % task_dir
+        )
 
 
 # ---------- blindness ----------

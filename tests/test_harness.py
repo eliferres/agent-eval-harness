@@ -194,6 +194,35 @@ class HarnessTest(unittest.TestCase):
                 reds = [(name, detail) for name, green, detail in legs if not green]
                 self.assertEqual(reds, [(leg, "no tests ran")])
 
+    def test_the_child_cannot_see_the_callers_working_directory(self):
+        # The arm's code runs in that child. Handed the caller's working
+        # directory, two lines of arm code walk to the checkout and rewrite
+        # the hidden tests the arm is about to be judged by.
+        task = build_task(self.root / "cwd-task", name="cwd")
+        write(task["dir"] / harness.VISIBLE / "test_v.py",
+              "import os\n"
+              "import unittest\n"
+              "\n"
+              "\n"
+              "class T(unittest.TestCase):\n"
+              "    def test_the_environment_names_no_working_directory(self):\n"
+              "        self.assertEqual([n for n in harness_vars if n in os.environ], [])\n"
+              "\n"
+              "\n"
+              "harness_vars = (\"PWD\", \"OLDPWD\")\n")
+        result = harness.run_tests(build_arm(self.root / "arm-a"),
+                                   task["dir"] / harness.VISIBLE)
+        self.assertTrue(result["ok"], result["output"])
+
+    def test_a_run_that_rewrote_the_tests_is_refused(self):
+        before = harness.fixture_fingerprint(self.task["dir"])
+        harness.check_fixture(self.task["dir"], before)  # unchanged: no complaint
+
+        write(self.task["dir"] / harness.HIDDEN / "test_h.py", VISIBLE_TEST)
+        with self.assertRaises(ValueError) as caught:
+            harness.check_fixture(self.task["dir"], before)
+        self.assertIn("rewritten while the arm ran", str(caught.exception))
+
     def test_packet_carries_no_arm_identity(self):
         arms = [build_arm(self.root / "arm-a"), build_arm(self.root / "arm-b", BAD_ARM)]
         key = harness.build_packet(self.task, arms, self.root / "runs")

@@ -114,7 +114,9 @@ def load_arm(raw: str) -> Path:
 def cmd_check(args) -> int:
     task = harness.load_task(Path(args.task))
     arm_dir = load_arm(args.arm)
+    fixture = harness.fixture_fingerprint(task["dir"])
     result = harness.run_tests(arm_dir, task["dir"] / harness.VISIBLE)
+    harness.check_fixture(task["dir"], fixture)
     ledger = harness.load_ledger(Path(args.runs), task["name"])
     harness.record_result(ledger, arm_dir, "visible", result)
     harness.save_ledger(Path(args.runs), task["name"], ledger)
@@ -128,6 +130,7 @@ def cmd_grade(args) -> int:
     task = harness.load_task(Path(args.task))
     arm_dir = load_arm(args.arm)
     hidden_dir = task["dir"] / harness.HIDDEN
+    fixture = harness.fixture_fingerprint(task["dir"])
     leaks = harness.contamination(arm_dir, hidden_dir)
 
     ledger = harness.load_ledger(Path(args.runs), task["name"])
@@ -143,6 +146,7 @@ def cmd_grade(args) -> int:
         return 1
 
     result = harness.run_tests(arm_dir, hidden_dir)
+    harness.check_fixture(task["dir"], fixture)
     harness.record_result(ledger, arm_dir, "hidden", result)
     harness.save_ledger(Path(args.runs), task["name"], ledger)
     print(result["output"])
