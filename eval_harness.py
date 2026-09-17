@@ -400,18 +400,30 @@ def stale_results(ledger: dict, arm_id: str, given_dir: Path) -> list[str]:
     # a packet built from code the arm no longer holds is as stale as a test
     # result, and the judge never saw what is on disk now.
     packet = ledger.get("packet") or {}
-    if arm_id in (packet.get("order") or {}).values():
-        packed = (packet.get("fingerprints") or {}).get(arm_id)
-        if not packed:
-            problems.append(
-                "%s went into the judging packet with no fingerprint, so what the judge "
-                "saw cannot be verified - re-run pack" % arm_id
-            )
-        elif packed != current:
-            problems.append(
-                "%s changed after the judging packet was built - re-run pack and record"
-                % arm_id
-            )
+    packed_ids = sorted(set((packet.get("order") or {}).values()))
+    # Every arm the packet holds, not only the one named. The scorecard is a
+    # comparison: replace the loser's code and the winner would still ship on
+    # a judgement that no longer describes either side.
+    if arm_id in packed_ids:
+        for packed_id in packed_ids:
+            packed = (packet.get("fingerprints") or {}).get(packed_id)
+            recorded = (ledger["arms"].get(packed_id) or {}).get("path")
+            where = given_dir if packed_id == arm_id else Path(recorded) if recorded else None
+            if not packed:
+                problems.append(
+                    "%s went into the judging packet with no fingerprint, so what the judge "
+                    "saw cannot be verified - re-run pack" % packed_id
+                )
+            elif where is None or not where.is_dir():
+                problems.append(
+                    "%s went into the judging packet and is not on disk now - "
+                    "re-run pack and record" % packed_id
+                )
+            elif arm_fingerprint(where) != packed:
+                problems.append(
+                    "%s changed after the judging packet was built - re-run pack and record"
+                    % packed_id
+                )
     return problems
 
 

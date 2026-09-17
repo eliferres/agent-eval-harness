@@ -251,6 +251,28 @@ class CliTest(unittest.TestCase):
         self.assertIn("rewritten while the arm ran", proc.stderr)
         self.assertFalse(harness.ledger_path(self.runs, "word-wrap").exists())
 
+    def test_ship_refuses_when_the_other_arm_in_the_packet_changed(self):
+        # Only the named arm's fingerprint was checked, so after the judge
+        # had scored both you could replace the loser's code entirely and
+        # still ship the winner on a comparison that describes neither.
+        winner = Path(self.tmp.name) / "arm-a"
+        loser = Path(self.tmp.name) / "arm-b"
+        harness.stage(REPO / ARM_A, winner, skip_meta=False)
+        harness.stage(REPO / ARM_B, loser, skip_meta=False)
+        for args in (("check", TASK, str(winner)), ("grade", TASK, str(winner)),
+                     ("pack", TASK, str(winner), str(loser))):
+            proc = self.eval_py(*args)
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertEqual(self.eval_py("record", TASK, "demo/scorecard-filled.md").returncode, 0)
+        self.assertEqual(self.eval_py("ship", TASK, str(winner)).returncode, 0)
+
+        (loser / "solution.py").write_text("def wrap(text, width):\n    return []\n",
+                                           encoding="utf-8")
+        refused = self.eval_py("ship", TASK, str(winner))
+        self.assertEqual(refused.returncode, 1, refused.stdout)
+        self.assertIn("arm-b changed after the judging packet was built", refused.stdout)
+        self.assertNotIn("SHIP\n", refused.stdout)
+
     def test_a_bad_task_path_is_one_line_on_stderr(self):
         # Exit 2 with one line, and the line goes where an error line goes:
         # a caller piping stdout into a report used to collect this one.
