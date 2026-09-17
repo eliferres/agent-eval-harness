@@ -233,6 +233,21 @@ class HarnessTest(unittest.TestCase):
         write(arm / "solution.py", BAD_ARM)
         self.assertNotEqual(harness.arm_fingerprint(arm), baseline)
 
+    def test_fingerprint_moves_when_one_file_is_folded_into_another(self):
+        # Delete a file and append its name and its bytes to the file that
+        # sorts before it, and the bytes fed to the hash are byte for byte
+        # what the untouched arm fed it, unless every field carries its
+        # length. Same hash, one solution file gone.
+        arm = build_arm(self.root / "arm-a")  # meta.json, then solution.py
+        baseline = harness.arm_fingerprint(arm)
+
+        carrier, folded = arm / harness.META, arm / "solution.py"
+        carrier.write_bytes(
+            carrier.read_bytes() + b"\0" + b"solution.py" + b"\0" + folded.read_bytes()
+        )
+        folded.unlink()
+        self.assertNotEqual(harness.arm_fingerprint(arm), baseline)
+
     def test_a_result_with_no_fingerprint_is_unverifiable(self):
         arm = build_arm(self.root / "arm-a")
         # A ledger written before fingerprints existed: a result, no hash.

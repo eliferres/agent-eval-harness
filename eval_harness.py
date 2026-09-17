@@ -217,14 +217,18 @@ def arm_fingerprint(arm_dir: Path) -> str:
     Names and bytes only, never mtimes or inode data, so the same arm hashes
     the same on another machine and after a copy. This is what ties a
     recorded result to the code that produced it.
+
+    Each field goes in as its byte length, a colon, then the bytes. A file's
+    contents can hold any byte, a null included, so a separator byte would
+    leave the boundary between two files guessable: delete one file, fold its
+    name and bytes into another, and the hash would not move.
     """
     digest = hashlib.sha256()
     files = sorted(iter_files(arm_dir), key=lambda p: p.relative_to(arm_dir).as_posix())
     for path in files:
-        digest.update(path.relative_to(arm_dir).as_posix().encode("utf-8"))
-        digest.update(b"\0")
-        digest.update(path.read_bytes())
-        digest.update(b"\0")
+        for field in (path.relative_to(arm_dir).as_posix().encode("utf-8"), path.read_bytes()):
+            digest.update(b"%d:" % len(field))
+            digest.update(field)
     return digest.hexdigest()
 
 
