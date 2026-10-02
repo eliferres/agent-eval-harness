@@ -4,4 +4,3 @@ runs/
 build/
 dist/
 *.egg-info/
-.claude/
