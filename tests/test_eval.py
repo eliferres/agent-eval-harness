@@ -324,6 +324,22 @@ class CliTest(unittest.TestCase):
             "__init__.py",
         ])
 
+    def test_record_refuses_a_winner_scored_below_the_other_arm(self):
+        # Scores 3 and 9 with the 3 named winner filed at exit 0, and the
+        # winner's judge leg then went green under a floor of 8.
+        self.assertEqual(self.eval_py("pack", TASK, ARM_A, ARM_B).returncode, 0)
+        card = Path(self.tmp.name) / "card.md"
+        card.write_text(
+            (REPO / "demo" / "scorecard-filled.md").read_text(encoding="utf-8")
+            .replace("Score: 6", "Score: 3")
+            .replace("Winner: submission-2", "Winner: submission-1"),
+            encoding="utf-8")
+        proc = self.eval_py("record", TASK, str(card))
+        self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+        self.assertEqual(proc.stderr.splitlines(), [
+            "record: Expected `verdict.Winner` to be scored no lower than the other "
+            "submission, got submission-1 at 3 against 9"])
+
     def test_record_refuses_an_unfilled_judge_or_another_tasks_card(self):
         # The README promises every placeholder is refused; the judge line
         # was not read at all, and the title was never compared with the

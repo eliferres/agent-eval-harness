@@ -266,6 +266,8 @@ class HarnessTest(unittest.TestCase):
             "judge missing": FILLED_CARD.replace("Judge: a human\n", ""),
             "another task's card": FILLED_CARD.replace("# Scorecard - t", "# Scorecard - u"),
             "no title": FILLED_CARD.replace("# Scorecard - t\n", ""),
+            "winner scored lower": FILLED_CARD.replace("Winner: submission-2",
+                                                       "Winner: submission-1"),
         }
         for label, text in broken.items():
             with self.subTest(label):

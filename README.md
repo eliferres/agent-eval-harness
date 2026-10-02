@@ -73,8 +73,10 @@ both written to the ledger, anyone can rerun the shuffle and confirm the
 unblinding was not invented after the fact.
 
 **The four-legged ship test.** An arm ships only when the visible tests
-pass, the hidden tests pass, the blind judge picked it (or scored it at
-or above the task's floor), and someone recorded a yes-or-no on whether
+pass, the hidden tests pass, the blind judge picked it or scored it at
+or above the task's floor (`record` refuses a card whose winner is
+scored below the other submission, so a pick never overrides the
+scores), and someone recorded a yes-or-no on whether
 the loser had ideas worth grafting. One command prints all four and
 refuses while any is red or unrecorded.
 

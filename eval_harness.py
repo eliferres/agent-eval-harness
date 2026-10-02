@@ -629,6 +629,14 @@ def parse_scorecard(text: str, task_name: str) -> dict:
         raise ValueError(
             "Expected `verdict.Winner` to be one of %s, got `%s`" % (", ".join(SUBMISSIONS), winner)
         )
+    other = next(slot for slot in SUBMISSIONS if slot != winner)
+    if scores[winner] < scores[other]:
+        # The winner's judge leg goes green whatever the floor, so a card
+        # contradicting itself would ship the arm the judge scored lower.
+        raise ValueError(
+            "Expected `verdict.Winner` to be scored no lower than the other submission, "
+            "got %s at %d against %d" % (winner, scores[winner], scores[other])
+        )
     reviewed = verdict.get("graft reviewed", "").lower()
     if reviewed not in ("yes", "no"):
         raise ValueError("Expected `verdict.Graft reviewed` to be yes or no, got `%s`" % reviewed)
