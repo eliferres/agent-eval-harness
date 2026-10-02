@@ -247,7 +247,7 @@ class HarnessTest(unittest.TestCase):
         self.assertTrue((packet / "scorecard.md").is_file())
 
     def test_valid_scorecard_parses(self):
-        card = harness.parse_scorecard(FILLED_CARD)
+        card = harness.parse_scorecard(FILLED_CARD, "t")
         self.assertEqual(card["winner"], "submission-2")
         self.assertEqual(card["scores"], {"submission-1": 4, "submission-2": 9})
         self.assertTrue(card["graft_reviewed"])
@@ -261,11 +261,16 @@ class HarnessTest(unittest.TestCase):
             "winner not a submission": FILLED_CARD.replace("Winner: submission-2", "Winner: arm-a"),
             "graft notes unfilled": FILLED_CARD.replace("Graft notes: nothing worth taking",
                                                         "Graft notes: <what the loser does better>"),
+            "judge unfilled": FILLED_CARD.replace("Judge: a human",
+                                                  "Judge: <who or what judged this>"),
+            "judge missing": FILLED_CARD.replace("Judge: a human\n", ""),
+            "another task's card": FILLED_CARD.replace("# Scorecard - t", "# Scorecard - u"),
+            "no title": FILLED_CARD.replace("# Scorecard - t\n", ""),
         }
         for label, text in broken.items():
             with self.subTest(label):
                 with self.assertRaises(ValueError):
-                    harness.parse_scorecard(text)
+                    harness.parse_scorecard(text, "t")
 
     def test_each_leg_can_fail_on_its_own(self):
         reds = [

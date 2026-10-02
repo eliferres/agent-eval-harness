@@ -540,6 +540,7 @@ def build_packet(task: dict, arm_dirs: list[Path], runs_dir: Path) -> dict:
 # ---------- scorecard ----------
 
 
+TITLE = re.compile(r"^#\s+Scorecard\s+-\s+(.+?)\s*$", re.M)
 SECTION = re.compile(r"^##\s+(.+?)\s*$", re.M)
 FIELD = re.compile(r"^([A-Za-z][A-Za-z ]*):\s*(.*)$")
 
@@ -569,8 +570,19 @@ def _score(raw: str, where: str) -> int:
     return value
 
 
-def parse_scorecard(text: str) -> dict:
-    """Validate a filled scorecard and return it as data. Raises ValueError."""
+def parse_scorecard(text: str, task_name: str) -> dict:
+    """Validate a filled scorecard and return it as data. Raises ValueError.
+
+    The title has to name the task being recorded: a card is judged
+    against one packet, and filing one written for another task would
+    unblind this task's arms with someone else's verdict.
+    """
+    title = TITLE.search(text)
+    if not title or title.group(1) != task_name:
+        raise ValueError(
+            "Expected the scorecard to be titled `# Scorecard - %s`, got `%s`"
+            % (task_name, title.group(0).strip() if title else text.strip().split("\n")[0])
+        )
     sections = _sections(text)
     for name in SUBMISSIONS + ("verdict",):
         if name not in sections:
@@ -605,9 +617,12 @@ def parse_scorecard(text: str) -> dict:
         found = FIELD.match(line.strip())
         if found:
             header[found.group(1).strip().lower()] = found.group(2).strip()
+    judge = header.get("judge", "")
+    if not judge or judge.startswith("<"):
+        raise ValueError("Expected `Judge` to name who or what judged this, got `%s`" % judge)
 
     return {
-        "judge": header.get("judge", ""),
+        "judge": judge,
         "scores": scores,
         "notes": notes,
         "winner": winner,

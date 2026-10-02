@@ -170,8 +170,9 @@ and `judge-brief.md`, then run the same five steps.
 ## Scorecard format
 
 `pack` writes this template into the packet; `record` refuses anything
-that does not fill it. Every field is load-bearing, and unfilled
-placeholders (anything still in angle brackets) are rejected:
+that does not fill it. Every field is load-bearing, unfilled
+placeholders (anything still in angle brackets) are rejected, and the
+title has to name the task you are recording:
 
 ```markdown
 # Scorecard - <task>

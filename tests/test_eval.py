@@ -291,6 +291,34 @@ class CliTest(unittest.TestCase):
                       refused.stdout)
         self.assertNotIn("SHIP\n", refused.stdout)
 
+    def test_record_refuses_an_unfilled_judge_or_another_tasks_card(self):
+        # The README promises every placeholder is refused; the judge line
+        # was not read at all, and the title was never compared with the
+        # task, so a card written for another task filed cleanly.
+        self.assertEqual(self.eval_py("pack", TASK, ARM_A, ARM_B).returncode, 0)
+        filled = (REPO / "demo" / "scorecard-filled.md").read_text(encoding="utf-8")
+        cases = {
+            "judge placeholder": (
+                filled.replace("Judge: example judge (canned, so the demo runs with no model calls)",
+                               "Judge: <who or what judged this>"),
+                "Expected `Judge` to name who or what judged this"),
+            "judge blank": (
+                filled.replace("Judge: example judge (canned, so the demo runs with no model calls)",
+                               "Judge:"),
+                "Expected `Judge` to name who or what judged this"),
+            "another task": (
+                filled.replace("# Scorecard - word-wrap", "# Scorecard - csv-parse"),
+                "Expected the scorecard to be titled `# Scorecard - word-wrap`"),
+        }
+        for label, (text, message) in cases.items():
+            with self.subTest(label):
+                card = Path(self.tmp.name) / "card.md"
+                card.write_text(text, encoding="utf-8")
+                proc = self.eval_py("record", TASK, str(card))
+                self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+                self.assertEqual(len(proc.stderr.splitlines()), 1, proc.stderr)
+                self.assertIn(message, proc.stderr)
+
     def test_ship_refuses_when_the_other_arm_in_the_packet_changed(self):
         # Only the named arm's fingerprint was checked, so after the judge
         # had scored both you could replace the loser's code entirely and

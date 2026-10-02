@@ -178,7 +178,8 @@ def cmd_record(args) -> int:
     if not ledger.get("packet"):
         print("record: no packet for %s - run pack first" % task["name"])
         return 2
-    card = harness.parse_scorecard(Path(args.scorecard).read_text(encoding="utf-8"))
+    card = harness.parse_scorecard(
+        Path(args.scorecard).read_text(encoding="utf-8"), task["name"])
     ledger["scorecard"] = card
     harness.save_ledger(Path(args.runs), task["name"], ledger)
 
