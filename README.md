@@ -9,6 +9,9 @@ whatever agent, tool, or human you point at the spec, so it works the
 same with any vendor and with a human in either seat.
 
 ![ci](https://github.com/eliferres/agent-eval-harness/actions/workflows/ci.yml/badge.svg)
+![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+![python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)
+![dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
 
 <img src="demo/terminal.svg" width="660" alt="Terminal session showing one arm passing the visible word-wrap tests, then passing the hidden edge tests it was never shown, with both test logs in full.">
 

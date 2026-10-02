@@ -33,6 +33,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Reshaped the README around the run itself: the sections are now Try it, How a run works, A run on the demo task, Scorecard format and What ship refuses, the file layout is one paragraph under Try it instead of a table, and the license is one closing line. The walkthrough now takes one arm all the way through, `check` then `grade`, before starting the other, instead of grouping both arms under each command. The text under each heading is the text that was there.
 - Renamed `eval.py` to `agent_eval.py` and `harness.py` to `eval_harness.py`, so installing this tool cannot shadow another package that owns the generic top-level name `eval` or `harness`.
 - `.gitignore` no longer carries an entry for one editor's settings folder; it lists only Python build output, caches, run output and `.DS_Store`.
+- The README opens with badges for the license, the supported Python versions and the dependency count beside the CI badge.
 
 ## [1.1.0](https://github.com/eliferres/agent-eval-harness/releases/tag/v1.1.0) - 2026-09-03
 
