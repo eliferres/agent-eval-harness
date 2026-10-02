@@ -358,16 +358,27 @@ def arm_fingerprint(arm_dir: Path) -> str:
     return digest.hexdigest()
 
 
-def record_result(ledger: dict, arm_dir: Path, leg: str, result: dict) -> dict:
-    """File one leg's result against the arm, fingerprinted as it was tested."""
+def record_result(ledger: dict, arm_dir: Path, leg: str, result: dict, task_dir: Path) -> dict:
+    """File one leg's result against the arm, fingerprinted as it was tested.
+
+    Both sides of the run are fingerprinted: the arm, and the test folder
+    the leg ran. A result is evidence about one arm against one set of
+    tests, and either changing afterwards leaves it describing neither.
+    """
     entry = arm_entry(ledger, arm_dir)
     entry["path"] = str(arm_dir.resolve())
     result["fingerprint"] = arm_fingerprint(arm_dir)
+    result["tests_fingerprint"] = arm_fingerprint(task_dir / LEG_TESTS[leg])
     entry[leg] = result
     return entry
 
 
 LEG_NAMES = {"visible": "visible tests", "blindness": "blindness check", "hidden": "hidden tests"}
+
+# The test folder each leg reads. The blindness check compares the arm
+# against the hidden tests, so it rests on them as much as the hidden run.
+LEG_TESTS = {"visible": VISIBLE, "blindness": HIDDEN, "hidden": HIDDEN}
+TEST_NAMES = {VISIBLE: "visible tests", HIDDEN: "hidden tests"}
 
 
 def ran_and_passed(result) -> bool:
@@ -398,7 +409,7 @@ def prog() -> str:
     return os.path.basename(sys.argv[0]) or "agent-eval"
 
 
-def stale_results(ledger: dict, arm_id: str, given_dir: Path) -> list[str]:
+def stale_results(ledger: dict, arm_id: str, given_dir: Path, task_dir: Path) -> list[str]:
     """Recorded results that no longer describe the arm the caller named.
 
     `given_dir` is the directory the caller asked about. Arms are keyed by
@@ -407,10 +418,11 @@ def stale_results(ledger: dict, arm_id: str, given_dir: Path) -> list[str]:
     and the untouched original would clear it.
 
     Empty means every result was recorded against exactly the files that are
-    there now, the judging packet included. Anything else is a reason to
-    refuse: an arm that is not the one that was tested, a result or a packet
-    whose arm has changed since, or either one old enough to carry no
-    fingerprint at all.
+    there now, against the task's tests as they are now, the judging packet
+    included. Anything else is a reason to refuse: an arm that is not the
+    one that was tested, a result or a packet whose arm has changed since, a
+    result whose test folder has changed since, or a record old enough to
+    carry no fingerprint at all.
     """
     arm = ledger["arms"].get(arm_id, {})
     recorded = [(leg, arm[leg]) for leg in LEG_NAMES if arm.get(leg)]
@@ -426,8 +438,10 @@ def stale_results(ledger: dict, arm_id: str, given_dir: Path) -> list[str]:
                 % (arm_id, arm_dir.resolve(), given_dir.resolve())]
 
     current = arm_fingerprint(arm_dir)
+    tests_now = {name: arm_fingerprint(task_dir / name) for name in TEST_NAMES}
     problems = []
     for leg, result in recorded:
+        tests = LEG_TESTS[leg]
         if not result.get("fingerprint"):
             problems.append(
                 "%s has a %s result with no fingerprint, so it cannot be verified - re-run the legs"
@@ -437,6 +451,16 @@ def stale_results(ledger: dict, arm_id: str, given_dir: Path) -> list[str]:
             problems.append(
                 "%s changed after the %s leg tested it - re-run the legs"
                 % (arm_id, LEG_NAMES[leg])
+            )
+        elif not result.get("tests_fingerprint"):
+            problems.append(
+                "%s has a %s result with no fingerprint of the tests it ran, so it cannot be "
+                "verified - re-run the legs" % (arm_id, LEG_NAMES[leg])
+            )
+        elif result["tests_fingerprint"] != tests_now[tests]:
+            problems.append(
+                "%s: the %s changed after the %s leg ran them - re-run the legs"
+                % (arm_id, TEST_NAMES[tests], LEG_NAMES[leg])
             )
 
     # The judge and graft legs read a scorecard written against the packet,

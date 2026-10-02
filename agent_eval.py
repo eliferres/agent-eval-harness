@@ -118,7 +118,7 @@ def cmd_check(args) -> int:
     result = harness.run_tests(arm_dir, task["dir"] / harness.VISIBLE)
     harness.check_fixture(task["dir"], fixture)
     ledger = harness.load_ledger(Path(args.runs), task["name"])
-    harness.record_result(ledger, arm_dir, "visible", result)
+    harness.record_result(ledger, arm_dir, "visible", result, task["dir"])
     harness.save_ledger(Path(args.runs), task["name"], ledger)
     print(result["output"])
     print("check: %s visible tests %s (%d ran)"
@@ -135,7 +135,8 @@ def cmd_grade(args) -> int:
 
     ledger = harness.load_ledger(Path(args.runs), task["name"])
     entry = harness.record_result(
-        ledger, arm_dir, "blindness", {"clean": not leaks, "leaks": leaks, "at": harness.now()}
+        ledger, arm_dir, "blindness", {"clean": not leaks, "leaks": leaks, "at": harness.now()},
+        task["dir"],
     )
     if leaks:
         entry.pop("hidden", None)
@@ -147,7 +148,7 @@ def cmd_grade(args) -> int:
 
     result = harness.run_tests(arm_dir, hidden_dir)
     harness.check_fixture(task["dir"], fixture)
-    harness.record_result(ledger, arm_dir, "hidden", result)
+    harness.record_result(ledger, arm_dir, "hidden", result, task["dir"])
     harness.save_ledger(Path(args.runs), task["name"], ledger)
     print(result["output"])
     print("grade: %s hidden tests %s (%d ran, blindness verified)"
@@ -197,7 +198,7 @@ def cmd_ship(args) -> int:
     ledger = harness.load_ledger(Path(args.runs), task["name"])
     floor = args.floor if args.floor is not None else int(task["judge_floor"])
 
-    stale = harness.stale_results(ledger, arm_id, arm_dir)
+    stale = harness.stale_results(ledger, arm_id, arm_dir, task["dir"])
     if stale:
         print("ship: %s / %s" % (task["name"], arm_id))
         for line in stale:

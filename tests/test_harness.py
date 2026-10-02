@@ -381,21 +381,33 @@ class HarnessTest(unittest.TestCase):
         here = Path.cwd()
         os.chdir(self.root)
         try:
-            harness.record_result(ledger, Path("arm-a"), "visible", {"ok": True, "ran": 1})
+            harness.record_result(ledger, Path("arm-a"), "visible", {"ok": True, "ran": 1},
+                                  self.task["dir"])
         finally:
             os.chdir(here)
 
-        self.assertEqual(harness.stale_results(ledger, "arm-a", arm), [])
+        self.assertEqual(harness.stale_results(ledger, "arm-a", arm, self.task["dir"]), [])
 
     def test_a_result_with_no_fingerprint_is_unverifiable(self):
         arm = build_arm(self.root / "arm-a")
         # A ledger written before fingerprints existed: a result, no hash.
         ledger = {"task": "t", "arms": {"arm-a": {"path": str(arm),
                                                   "visible": {"ok": True, "ran": 3}}}}
-        problems = harness.stale_results(ledger, "arm-a", arm)
+        problems = harness.stale_results(ledger, "arm-a", arm, self.task["dir"])
         self.assertEqual(len(problems), 1, problems)
         self.assertIn("no fingerprint", problems[0])
         self.assertIn("re-run the legs", problems[0])
+
+    def test_a_result_with_no_fingerprint_of_its_tests_is_unverifiable(self):
+        # A ledger written before results recorded the tests they ran.
+        arm = build_arm(self.root / "arm-a")
+        ledger = {"task": "t", "arms": {}}
+        harness.record_result(ledger, arm, "hidden", {"ok": True, "ran": 1}, self.task["dir"])
+        del ledger["arms"]["arm-a"]["hidden"]["tests_fingerprint"]
+        problems = harness.stale_results(ledger, "arm-a", arm, self.task["dir"])
+        self.assertEqual(problems, [
+            "arm-a has a hidden tests result with no fingerprint of the tests it ran, "
+            "so it cannot be verified - re-run the legs"])
 
     def test_a_judge_tie_the_loser_still_clears_the_floor(self):
         # Winning isn't the only way the blind-judge leg goes green: an arm

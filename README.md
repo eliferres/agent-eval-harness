@@ -211,18 +211,22 @@ becomes theatre:
    inherit a known order.
 4. **`ship` treats unrecorded as red.** A leg nobody ran and a leg that
    failed print the same verdict: no ship.
-5. **A result is tied to the code it was recorded against.** Each test
-   leg stores a sha256 over the arm's file names and bytes, and `pack`
-   stores the same hash for each arm it puts in the packet, which is what
-   the blind judge and graft legs rest on. `ship` recomputes both and
-   refuses, non-zero, when the arm was edited after a leg passed or after
-   the packet was built, naming the arm and what it outran. A result or a
-   packet carrying no fingerprint at all is refused the same way, as
-   unverifiable rather than trusted, with a line saying what to re-run. The hash reads
-   content only, never mtimes, so a run that is copied file for file
-   still verifies. `ship` also checks that the directory you name is the
-   directory the legs were run against, resolved, so a copy of an arm
-   made somewhere else cannot answer for the original.
+5. **A result is tied to the code and the tests it was recorded
+   against.** Each test leg stores a sha256 over the arm's file names and
+   bytes and another over the test folder it ran, and `pack` stores the
+   arm hash for each arm it puts in the packet, which is what the blind
+   judge and graft legs rest on. `ship` recomputes them all and refuses,
+   non-zero, when the arm was edited after a leg passed or after the
+   packet was built, or when a test folder changed after a leg ran it,
+   naming the arm and what it outran. That last one means a result graded
+   against a stand-in test set does not survive the real tests being put
+   back. A result or a packet carrying no fingerprint at all is refused
+   the same way, as unverifiable rather than trusted, with a line saying
+   what to re-run. The hash reads content only, never mtimes, so a run
+   that is copied file for file still verifies. `ship` also checks that
+   the directory you name is the directory the legs were run against,
+   resolved, so a copy of an arm made somewhere else cannot answer for
+   the original.
 
 ## Why two arms and a stripped packet
 

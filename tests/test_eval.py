@@ -252,6 +252,45 @@ class CliTest(unittest.TestCase):
         self.assertIn("rewritten while the arm ran", proc.stderr)
         self.assertFalse(harness.ledger_path(self.runs, "word-wrap").exists())
 
+    def test_ship_refuses_a_result_graded_against_other_hidden_tests(self):
+        # Nothing hostile: grade arm-b against a one-test hidden set it
+        # passes, file a card picking it, then put the real hidden tests
+        # back. The results stored no record of the tests they ran, so ship
+        # printed SHIP for an arm the real hidden tests fail.
+        task = Path(self.tmp.name) / "task"
+        harness.stage(REPO / TASK, task, skip_meta=False)
+        hidden = task / harness.HIDDEN / "test_wrap_edges.py"
+        real = hidden.read_text(encoding="utf-8")
+        hidden.write_text(
+            "import unittest\nfrom solution import wrap\n\n\n"
+            "class T(unittest.TestCase):\n"
+            "    def test_one_line(self):\n"
+            "        self.assertEqual(wrap('a b', 5), ['a b'])\n",
+            encoding="utf-8")
+        arm = Path(self.tmp.name) / "arm-b"
+        harness.stage(REPO / ARM_B, arm, skip_meta=False)
+        for args in (("check", str(task), str(arm)), ("grade", str(task), str(arm)),
+                     ("pack", str(task), str(arm), ARM_A)):
+            proc = self.eval_py(*args)
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        order = json.loads(harness.ledger_path(self.runs, "word-wrap").read_text())
+        slot = next(s for s, a in order["packet"]["order"].items() if a == "arm-b")
+        card = Path(self.tmp.name) / "card.md"
+        card.write_text(
+            (REPO / "demo" / "scorecard-filled.md").read_text(encoding="utf-8")
+            .replace("Winner: submission-2", "Winner: %s" % slot)
+            .replace("Score: 6", "Score: 9"),
+            encoding="utf-8")
+        self.assertEqual(self.eval_py("record", str(task), str(card)).returncode, 0)
+
+        hidden.write_text(real, encoding="utf-8")
+        refused = self.eval_py("ship", str(task), str(arm))
+        self.assertEqual(refused.returncode, 1, refused.stdout)
+        self.assertIn("REFUSED", refused.stdout)
+        self.assertIn("the hidden tests changed after the hidden tests leg ran them",
+                      refused.stdout)
+        self.assertNotIn("SHIP\n", refused.stdout)
+
     def test_ship_refuses_when_the_other_arm_in_the_packet_changed(self):
         # Only the named arm's fingerprint was checked, so after the judge
         # had scored both you could replace the loser's code entirely and
