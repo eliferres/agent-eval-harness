@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## Unreleased
 
+Nothing yet.
+
+## [1.2.0](https://github.com/eliferres/agent-eval-harness/releases/tag/v1.2.0) - 2026-10-02
+
 ### Added
 - Added packaging, so `pipx install git+https://github.com/eliferres/agent-eval-harness` puts one command, `agent-eval`, on your path; it takes the same subcommands as the module and `agent-eval --version` prints the version. Anything the tool prints about what to run next names the command you invoked, `agent-eval` or `agent_eval.py`.
 
