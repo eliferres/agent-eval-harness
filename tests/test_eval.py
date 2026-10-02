@@ -291,6 +291,39 @@ class CliTest(unittest.TestCase):
                       refused.stdout)
         self.assertNotIn("SHIP\n", refused.stdout)
 
+    def test_grade_warns_about_hidden_tests_discovery_will_never_run(self):
+        # The real edge tests renamed to wrap_edges_test.py, or moved into a
+        # folder with no __init__.py, are skipped without a word, so one
+        # trivial test left beside them carries the hidden leg to green.
+        task = Path(self.tmp.name) / "task"
+        harness.stage(REPO / TASK, task, skip_meta=False)
+        hidden = task / harness.HIDDEN
+        edges = (hidden / "test_wrap_edges.py").read_text(encoding="utf-8")
+        (hidden / "test_wrap_edges.py").unlink()
+        (hidden / "wrap_edges_test.py").write_text(edges, encoding="utf-8")
+        (hidden / "more").mkdir()
+        (hidden / "more" / "test_more_edges.py").write_text(edges, encoding="utf-8")
+        (hidden / "deep").mkdir()
+        (hidden / "deep" / "__init__.py").write_text("", encoding="utf-8")
+        (hidden / "deep" / "test_deep.py").write_text(
+            "import unittest\nfrom solution import wrap\n\n\n"
+            "class T(unittest.TestCase):\n"
+            "    def test_one_line(self):\n"
+            "        self.assertEqual(wrap('a b', 5), ['a b'])\n",
+            encoding="utf-8")
+
+        proc = self.eval_py("grade", str(task), ARM_B)
+        self.assertIn("(1 ran, blindness verified)", proc.stdout)
+        warnings = [line for line in proc.stderr.splitlines() if "will not run" in line]
+        self.assertEqual(warnings, [
+            "grade: warning: hidden test file `more/test_more_edges.py` will not run: "
+            "test discovery reads only files named test*.py, in folders holding an "
+            "__init__.py",
+            "grade: warning: hidden test file `wrap_edges_test.py` will not run: "
+            "test discovery reads only files named test*.py, in folders holding an "
+            "__init__.py",
+        ])
+
     def test_record_refuses_an_unfilled_judge_or_another_tasks_card(self):
         # The README promises every placeholder is refused; the judge line
         # was not read at all, and the title was never compared with the

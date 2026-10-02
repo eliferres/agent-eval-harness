@@ -130,6 +130,9 @@ def cmd_grade(args) -> int:
     task = harness.load_task(Path(args.task))
     arm_dir = load_arm(args.arm)
     hidden_dir = task["dir"] / harness.HIDDEN
+    for name in harness.undiscovered(hidden_dir):
+        print("grade: warning: hidden test file `%s` will not run: test discovery reads only "
+              "files named test*.py, in folders holding an __init__.py" % name, file=sys.stderr)
     fixture = harness.fixture_fingerprint(task["dir"])
     leaks = harness.contamination(arm_dir, hidden_dir)
 

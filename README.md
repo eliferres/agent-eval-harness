@@ -53,7 +53,11 @@ real fixtures in temp dirs, no mocks and no network.
 `visible-tests/` is what the implementer may run. `hidden-tests/` holds
 the edges it never sees. `judge-brief.md` says what quality means here,
 and is written before any arm runs, so the bar cannot be bent afterwards
-to fit whichever result you like.
+to fit whichever result you like. Both test folders are read by unittest
+discovery, so a test file has to be named `test*.py` and every subfolder
+holding one needs an `__init__.py`; anything else never runs, and `grade`
+warns on standard error about each hidden `.py` file that discovery will
+skip.
 
 **Two blind arms.** Two independent attempts at the same spec, each just
 a directory of output plus a `meta.json` naming its author. Blindness is

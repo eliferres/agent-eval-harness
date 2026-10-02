@@ -13,6 +13,7 @@ Stdlib only.
 
 from __future__ import annotations
 
+import fnmatch
 import hashlib
 import json
 import os
@@ -209,6 +210,32 @@ def run_tests(arm_dir: Path, tests_dir: Path, timeout: int = TEST_TIMEOUT) -> di
         "at": now(),
         "output": "\n".join(output.splitlines()[-25:]),
     }
+
+
+# unittest's own test for a module name it can import, from the loader.
+MODULE_NAME = re.compile(r"[_a-z]\w*\.py$", re.I)
+
+
+def undiscovered(tests_dir: Path) -> list[str]:
+    """Python files under a test folder that discovery will never run.
+
+    The runner finds files named test*.py, and descends only into folders
+    holding an __init__.py. Anything else is skipped without a word, so a
+    misnamed edge-case file leaves its tests out and the leg can go green
+    on whatever trivial test is left. The rules are unittest's: the name is
+    matched with fnmatch, case-sensitive on Linux and macOS.
+    """
+    skipped = []
+    for path in iter_files(tests_dir):
+        rel = path.relative_to(tests_dir)
+        if path.suffix != ".py" or path.name == "__init__.py":
+            continue
+        folders = [tests_dir.joinpath(*rel.parts[:depth]) for depth in range(1, len(rel.parts))]
+        runs = (fnmatch.fnmatch(path.name, "test*.py") and MODULE_NAME.match(path.name)
+                and all((folder / "__init__.py").is_file() for folder in folders))
+        if not runs:
+            skipped.append(rel.as_posix())
+    return skipped
 
 
 def fixture_fingerprint(task_dir: Path) -> str:
