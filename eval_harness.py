@@ -153,13 +153,24 @@ TEST_TIMEOUT = 300
 # its own unittest.py from answering for the test run: discover puts the
 # staging directory first, but the real module is already imported by then.
 # `python -m unittest` did the two in the other order, so the arm's file won.
+#
+# Every test is named by its id, module.Class.method, in the progress lines
+# and the failure banners alike. unittest's own description changed in
+# Python 3.11 (it gained the method name), so passing it through made the
+# same run print a different log on each version.
 RUNNER = """
 import sys
 import unittest
 
+
+class ById(unittest.TextTestResult):
+    def getDescription(self, test):
+        return test.id()
+
+
 start = sys.argv[1]
 suite = unittest.defaultTestLoader.discover(start, top_level_dir=start)
-result = unittest.TextTestRunner(verbosity=2).run(suite)
+result = unittest.TextTestRunner(verbosity=2, resultclass=ById).run(suite)
 sys.exit(0 if result.wasSuccessful() else 1)
 """
 
@@ -177,7 +188,10 @@ def run_tests(arm_dir: Path, tests_dir: Path, timeout: int = TEST_TIMEOUT) -> di
         work = Path(tmp)
         stage(arm_dir, work)
         stage(tests_dir, work)
-        env = dict(os.environ, PYTHONSAFEPATH="1")  # ignored before Python 3.11
+        # PYTHONNODEBUGRANGES stops 3.11 and up drawing caret rows under a
+        # traceback line, so a failing run logs the same lines on every
+        # version. Both variables are ignored before Python 3.11.
+        env = dict(os.environ, PYTHONSAFEPATH="1", PYTHONNODEBUGRANGES="1")
         for name in CWD_VARS:
             env.pop(name, None)
         try:
