@@ -59,8 +59,8 @@ and is written before any arm runs, so the bar cannot be bent afterwards
 to fit whichever result you like. Both test folders are read by unittest
 discovery, so a test file has to be named `test*.py` and every subfolder
 holding one needs an `__init__.py`; anything else never runs, and `grade`
-warns on standard error about each hidden `.py` file that discovery will
-skip.
+warns on standard error about each hidden file discovery will skip that
+looks like tests, by a name containing "test" or an import of unittest.
 
 **Two blind arms.** Two independent attempts at the same spec, each just
 a directory of output plus a `meta.json` naming its author. Blindness is

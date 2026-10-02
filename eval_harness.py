@@ -214,10 +214,22 @@ def run_tests(arm_dir: Path, tests_dir: Path, timeout: int = TEST_TIMEOUT) -> di
 
 # unittest's own test for a module name it can import, from the loader.
 MODULE_NAME = re.compile(r"[_a-z]\w*\.py$", re.I)
+IMPORTS_UNITTEST = re.compile(r"^\s*(?:import\s+unittest|from\s+unittest\b)", re.M)
+
+
+def looks_like_tests(path: Path) -> bool:
+    """A file named for tests, or one that imports unittest.
+
+    The rest are support modules the tests import, which discovery is
+    meant to skip, so warning about them would only be noise.
+    """
+    return ("test" in path.name.lower()
+            or IMPORTS_UNITTEST.search(path.read_text(encoding="utf-8", errors="replace"))
+            is not None)
 
 
 def undiscovered(tests_dir: Path) -> list[str]:
-    """Python files under a test folder that discovery will never run.
+    """Test files under a test folder that discovery will never run.
 
     The runner finds files named test*.py, and descends only into folders
     holding an __init__.py. Anything else is skipped without a word, so a
@@ -233,7 +245,7 @@ def undiscovered(tests_dir: Path) -> list[str]:
         folders = [tests_dir.joinpath(*rel.parts[:depth]) for depth in range(1, len(rel.parts))]
         runs = (fnmatch.fnmatch(path.name, "test*.py") and MODULE_NAME.match(path.name)
                 and all((folder / "__init__.py").is_file() for folder in folders))
-        if not runs:
+        if not runs and looks_like_tests(path):
             skipped.append(rel.as_posix())
     return skipped
 

@@ -374,6 +374,24 @@ class CliTest(unittest.TestCase):
                               "record makes: " + message, refused.stdout)
                 self.assertNotIn("SHIP\n", refused.stdout)
 
+    def test_grade_stays_quiet_about_support_modules(self):
+        # Only a file that looks like tests is worth a warning: one with
+        # "test" in its name, or one that imports unittest. A helper the
+        # tests import is meant to be skipped by discovery.
+        task = Path(self.tmp.name) / "task"
+        harness.stage(REPO / TASK, task, skip_meta=False)
+        hidden = task / harness.HIDDEN
+        (hidden / "helpers.py").write_text("WIDTH = 5\n", encoding="utf-8")
+        (hidden / "edge_cases.py").write_text(
+            "import unittest\n\n\nclass T(unittest.TestCase):\n"
+            "    def test_x(self):\n        self.fail()\n", encoding="utf-8")
+        (hidden / "mytests.py").write_text("CASES = []\n", encoding="utf-8")
+
+        proc = self.eval_py("grade", str(task), ARM_A)
+        warned = [line.split("`")[1] for line in proc.stderr.splitlines()
+                  if "will not run" in line]
+        self.assertEqual(warned, ["edge_cases.py", "mytests.py"])
+
     def test_record_refuses_an_unfilled_judge_or_another_tasks_card(self):
         # The README promises every placeholder is refused; the judge line
         # was not read at all, and the title was never compared with the
