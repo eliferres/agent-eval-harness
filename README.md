@@ -236,7 +236,8 @@ becomes theatre:
    that is copied file for file still verifies. `ship` also checks that
    the directory you name is the directory the legs were run against,
    resolved, so a copy of an arm made somewhere else cannot answer for
-   the original.
+   the original, and holds the filed scorecard to the checks `record`
+   makes, so a card filed by an earlier version cannot skip them.
 
 ## Why two arms and a stripped packet
 

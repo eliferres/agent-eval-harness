@@ -598,18 +598,8 @@ def _score(raw: str, where: str) -> int:
 
 
 def parse_scorecard(text: str, task_name: str) -> dict:
-    """Validate a filled scorecard and return it as data. Raises ValueError.
-
-    The title has to name the task being recorded: a card is judged
-    against one packet, and filing one written for another task would
-    unblind this task's arms with someone else's verdict.
-    """
+    """Validate a filled scorecard and return it as data. Raises ValueError."""
     title = TITLE.search(text)
-    if not title or title.group(1) != task_name:
-        raise ValueError(
-            "Expected the scorecard to be titled `# Scorecard - %s`, got `%s`"
-            % (task_name, title.group(0).strip() if title else text.strip().split("\n")[0])
-        )
     sections = _sections(text)
     for name in SUBMISSIONS + ("verdict",):
         if name not in sections:
@@ -629,14 +619,6 @@ def parse_scorecard(text: str, task_name: str) -> dict:
         raise ValueError(
             "Expected `verdict.Winner` to be one of %s, got `%s`" % (", ".join(SUBMISSIONS), winner)
         )
-    other = next(slot for slot in SUBMISSIONS if slot != winner)
-    if scores[winner] < scores[other]:
-        # The winner's judge leg goes green whatever the floor, so a card
-        # contradicting itself would ship the arm the judge scored lower.
-        raise ValueError(
-            "Expected `verdict.Winner` to be scored no lower than the other submission, "
-            "got %s at %d against %d" % (winner, scores[winner], scores[other])
-        )
     reviewed = verdict.get("graft reviewed", "").lower()
     if reviewed not in ("yes", "no"):
         raise ValueError("Expected `verdict.Graft reviewed` to be yes or no, got `%s`" % reviewed)
@@ -652,18 +634,45 @@ def parse_scorecard(text: str, task_name: str) -> dict:
         found = FIELD.match(line.strip())
         if found:
             header[found.group(1).strip().lower()] = found.group(2).strip()
-    judge = header.get("judge", "")
-    if not judge or judge.startswith("<"):
-        raise ValueError("Expected `Judge` to name who or what judged this, got `%s`" % judge)
 
-    return {
-        "judge": judge,
+    card = {
+        "task": title.group(1) if title else "",
+        "judge": header.get("judge", ""),
         "scores": scores,
         "notes": notes,
         "winner": winner,
         "graft_reviewed": reviewed == "yes",
         "graft_notes": graft_notes,
     }
+    check_card(card, task_name)
+    return card
+
+
+def check_card(card: dict, task_name: str) -> None:
+    """The checks a filed card must pass, at record and again at ship.
+
+    Run again at ship because a ledger can hold a card filed by a version
+    that did not make them. The title has to name the task: a card is
+    judged against one packet, and one written for another task would
+    unblind this task's arms with someone else's verdict. The winner's
+    judge leg goes green whatever the floor, so a winner scored below the
+    other submission would ship the arm the judge scored lower.
+    """
+    if card.get("task") != task_name:
+        raise ValueError(
+            "Expected the scorecard to be titled `# Scorecard - %s`, got `%s`"
+            % (task_name, "# Scorecard - %s" % card["task"] if card.get("task") else "no title")
+        )
+    judge = card.get("judge", "")
+    if not judge or judge.startswith("<"):
+        raise ValueError("Expected `Judge` to name who or what judged this, got `%s`" % judge)
+    winner = card["winner"]
+    other = next(slot for slot in SUBMISSIONS if slot != winner)
+    if card["scores"][winner] < card["scores"][other]:
+        raise ValueError(
+            "Expected `verdict.Winner` to be scored no lower than the other submission, "
+            "got %s at %d against %d" % (winner, card["scores"][winner], card["scores"][other])
+        )
 
 
 # ---------- the four legs ----------

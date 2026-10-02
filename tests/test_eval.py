@@ -340,6 +340,40 @@ class CliTest(unittest.TestCase):
             "record: Expected `verdict.Winner` to be scored no lower than the other "
             "submission, got submission-1 at 3 against 9"])
 
+    def test_ship_rechecks_a_scorecard_already_in_the_ledger(self):
+        # A card filed by an earlier version was never held to the checks
+        # record now makes: a winner scored 8 against 10 shipped once the
+        # legs were re-run.
+        arm = Path(self.tmp.name) / "arm-a"
+        harness.stage(REPO / ARM_A, arm, skip_meta=False)
+        self.assertEqual(self.green_run(str(arm)).returncode, 0)
+        path = harness.ledger_path(self.runs, "word-wrap")
+        good = json.loads(path.read_text())
+        winner = good["scorecard"]["winner"]
+        other = next(s for s in harness.SUBMISSIONS if s != winner)
+        cases = {
+            "winner below": ({"scores": {winner: 8, other: 10}},
+                             "Expected `verdict.Winner` to be scored no lower"),
+            "judge placeholder": ({"judge": "<who or what judged this>"},
+                                  "Expected `Judge` to name who or what judged this"),
+            "another task": ({"task": "csv-parse"},
+                             "Expected the scorecard to be titled `# Scorecard - word-wrap`"),
+            "no title recorded": ({"task": None},
+                                  "Expected the scorecard to be titled `# Scorecard - word-wrap`"),
+        }
+        for label, (change, message) in cases.items():
+            with self.subTest(label):
+                ledger = json.loads(json.dumps(good))
+                ledger["scorecard"].update(change)
+                if ledger["scorecard"].get("task") is None:
+                    ledger["scorecard"].pop("task", None)
+                path.write_text(json.dumps(ledger), encoding="utf-8")
+                refused = self.eval_py("ship", TASK, str(arm))
+                self.assertEqual(refused.returncode, 1, refused.stdout)
+                self.assertIn("ship: REFUSED - the recorded scorecard fails a check "
+                              "record makes: " + message, refused.stdout)
+                self.assertNotIn("SHIP\n", refused.stdout)
+
     def test_record_refuses_an_unfilled_judge_or_another_tasks_card(self):
         # The README promises every placeholder is refused; the judge line
         # was not read at all, and the title was never compared with the

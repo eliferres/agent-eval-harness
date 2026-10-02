@@ -203,6 +203,12 @@ def cmd_ship(args) -> int:
     floor = args.floor if args.floor is not None else int(task["judge_floor"])
 
     stale = harness.stale_results(ledger, arm_id, arm_dir, task["dir"])
+    if ledger.get("scorecard"):
+        try:
+            harness.check_card(ledger["scorecard"], task["name"])
+        except ValueError as exc:
+            stale.append("the recorded scorecard fails a check record makes: %s - "
+                         "re-run record" % exc)
     if stale:
         print("ship: %s / %s" % (task["name"], arm_id))
         for line in stale:
