@@ -2,12 +2,14 @@
 
 agent-eval-harness runs two blind attempts at one spec, holds tests the implementer never sees, and hands both to a judge who cannot tell whose work is whose. It is not a sandbox.
 
-![ci](https://github.com/eliferres/agent-eval-harness/actions/workflows/ci.yml/badge.svg)
+[![ci](https://github.com/eliferres/agent-eval-harness/actions/workflows/ci.yml/badge.svg)](https://github.com/eliferres/agent-eval-harness/actions/workflows/ci.yml)
 ![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 ![python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)
 ![dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
 
 <img src="demo/terminal.svg" width="660" alt="Terminal session showing one arm passing the visible word-wrap tests, then passing the hidden edge tests it was never shown, with both test logs in full.">
+
+The [fde-agent-skills](https://github.com/eliferres/fde-agent-skills) library documents the working methods behind this tool and its sibling tools as agent skills.
 
 ## What it does
 
